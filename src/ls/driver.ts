@@ -2,76 +2,133 @@ import AbstractDriver from '@sqltools/base-driver';
 import queries from './queries';
 import { IConnectionDriver, MConnectionExplorer, NSDatabase, ContextValue, Arg0 } from '@sqltools/types';
 import { v4 as generateId } from 'uuid';
-import mysql, { Connection } from 'mysql2/promise';
+import MySQLLib, { QueryOptions } from 'mysql2/promise';
+import { countBy } from 'lodash';
 
-/**
- * set Driver lib to the type of your connection.
- * Eg for postgres:
- * import { Pool, PoolConfig } from 'pg';
- * ...
- * type DriverLib = Pool;
- * type DriverOptions = PoolConfig;
- *
- * This will give you completions iside of the library
- */
-type DriverLib = Connection;
-type DriverOptions = any;
-
-export default class SingleStoreDB extends AbstractDriver<DriverLib, DriverOptions> implements IConnectionDriver {
+export default class SingleStoreDB extends AbstractDriver<MySQLLib.Pool, MySQLLib.PoolOptions> implements IConnectionDriver {
 
   queries = queries;
 
-  // TODO: use connection pool
   public async open() {
     if (this.connection) {
       return this.connection;
     }
 
-    const singleStoreConnection = await mysql.createConnection({
+    const pool = MySQLLib.createPool({
+      // TODO: add parameter for connection timeout
+      connectTimeout: 1000,
+      database: this.credentials.database,
       host: this.credentials.server,
-      user: this.credentials.username,
       port: this.credentials.port,
       password: this.credentials.password,
-      database: this.credentials.database
+      user: this.credentials.username,
+      multipleStatements: true,
+      dateStrings: true,
+      bigNumberStrings: true,
+      supportBigNumbers: true,
     });
 
-    this.connection = Promise.resolve(singleStoreConnection);
-    return this.connection;
+    return new Promise<MySQLLib.Pool>((resolve, reject) => {
+      return pool.getConnection().then((conn) => {
+        conn.ping().then(() => {
+          this.connection = Promise.resolve(pool);
+          return resolve(this.connection)
+        }, reject)
+      }, reject)
+    });
   }
 
   public async close() {
     if (!this.connection)
       return Promise.resolve();
 
-    return this.connection.then((connection) => {
-      return connection.end();
+    return this.connection.then((pool) => {
+      return new Promise<void>((resolve, reject) => {
+        pool.end().then(() => {
+          this.connection = null;
+          return resolve();
+        }, reject)
+      });
+    });
+  }
+
+  public query: (typeof AbstractDriver)['prototype']['query'] = async (query, opt = {}) => {
+    return this.open().then((conn): Promise<NSDatabase.IResult[]> => {
+      const { requestId } = opt;
+      return new Promise((resolve, reject) => {
+        const options: QueryOptions = {
+          sql: query.toString(),
+          nestTables: true, // TODO: understand why it is needed
+        }
+        conn.query(options, (error, results, fields) => {
+          if (error) return reject(error);
+          try {
+            const queries = query.toString().split(';'); // TODO: Write better parser
+            if (results && !Array.isArray(results[0]) && typeof results[0] !== 'undefined') { // TODO: understand why it is needed
+              results = [results];
+            }
+            return resolve(queries.map((q, i): NSDatabase.IResult => {
+              const r = results[i] || [];
+              const messages = [];
+              if (r.affectedRows) {
+                messages.push(`${r.affectedRows} rows were affected.`);
+              }
+              if (r.changedRows) {
+                messages.push(`${r.changedRows} rows were changed.`);
+              }
+              if (fields) {
+                fields = fields.filter(field => typeof field !== 'undefined'); // TODO: understand why it is needed
+              }
+              return {
+                connId: this.getId(),
+                requestId,
+                resultId: generateId(),
+                cols: fields && Array.isArray(fields) ? this.getColumnNames(fields) : [],
+                messages,
+                query: q,
+                results: Array.isArray(r) ? this.mapRows(r, fields) : [],
+              };
+            }));
+          } catch (err) {
+            if (opt.throwIfError) {
+              throw new Error(err.message);
+            }
+            return [<NSDatabase.IResult>{
+              connId: this.getId(),
+              requestId: opt.requestId,
+              resultId: generateId(),
+              cols: [],
+              messages: [
+                this.prepareMessage([
+                  (err && err.message || err.toString()),
+                ].filter(Boolean).join(' '))
+              ],
+              error: true,
+              rawError: err,
+              query,
+              results: [],
+            }];
+          };
+        })
+      })
     })
   }
 
-  public query: (typeof AbstractDriver)['prototype']['query'] = async (queries, opt = {}) => {
-    const db = await this.open();
-    const queriesResults = await db.execute(queries.toString());
-    const resultsAgg: NSDatabase.IResult[] = [];
-    queriesResults.forEach(queryResult => {
-      resultsAgg.push({
-        cols: Object.keys(queryResult[0]),
-        connId: this.getId(),
-        messages: [{ date: new Date(), message: `Query ok with ${queriesResults.length} results` }],
-        results: [queryResult],
-        query: queries.toString(),
-        requestId: opt.requestId,
-        resultId: generateId(),
-      });
-    });
-    /**
-     * write the method to execute queries here!!
-     */
-    return resultsAgg;
+  private getColumnNames(fields: MySQLLib.FieldPacket[] = []): string[] {
+    const count = countBy(fields, ({ name }) => name);
+    return fields.map(({ table, name }) => count[name] > 1 ? `${table}.${name}` : name);
   }
 
-  /** if you need a different way to test your connection, you can set it here.
-   * Otherwise by default we open and close the connection only
-   */
+  private mapRows(rows: any[] = [], fields: MySQLLib.FieldPacket[] = []): any[] {
+    const names = this.getColumnNames(fields);
+    return rows.map((row) => fields.reduce((r, { table, name }, i) => ({ ...r, [names[i]]: this.castResultsIfNeeded(row[table][name]) }), {}));
+  }
+
+  private castResultsIfNeeded(data: any) {
+    if (!Buffer.isBuffer(data)) return data;
+    return Buffer.from(data).toString('hex');
+  }
+
   public async testConnection() {
     await this.open();
     await this.query('SELECT 1', {});

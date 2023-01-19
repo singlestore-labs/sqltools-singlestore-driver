@@ -37,6 +37,7 @@
   "dependencies": {
     "@sqltools/base-driver": "latest",
     "@sqltools/types": "latest",
+    "lodash": "^4.17.19",
     "mysql2": "^3.0.1",
     "uuid": "^7.0.2"
   },
