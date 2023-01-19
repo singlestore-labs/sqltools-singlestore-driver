@@ -2,6 +2,7 @@ import AbstractDriver from '@sqltools/base-driver';
 import queries from './queries';
 import { IConnectionDriver, MConnectionExplorer, NSDatabase, ContextValue, Arg0 } from '@sqltools/types';
 import { v4 as generateId } from 'uuid';
+import mysql, { Connection } from 'mysql2/promise';
 
 /**
  * set Driver lib to the type of your connection.
@@ -13,48 +14,16 @@ import { v4 as generateId } from 'uuid';
  *
  * This will give you completions iside of the library
  */
-type DriverLib = typeof fakeDbLib;
+type DriverLib = Connection;
 type DriverOptions = any;
 
-/**
- * MOCKED DB DRIVER
- * THIS IS JUST AN EXAMPLE AND THE LINES BELOW SHOUDL BE REMOVED!
- */
-// import fakeDbLib from './mylib'; // this is what you should do
-const fakeDbLib = {
-  open: () => Promise.resolve(fakeDbLib),
-  query: (..._args: any[]) => {
-    const nResults = parseInt((Math.random() * 1000).toFixed(0));
-    const nCols = parseInt((Math.random() * 100).toFixed(0));
-    const colNames = [...new Array(nCols)].map((_, index) => `col${index}`);
-    const generateRow = () => {
-      const row = {};
-      colNames.forEach(c => {
-        row[c] = Math.random() * 1000;
-      });
-      return row;
-    }
-    const results = [...new Array(nResults)].map(generateRow);
-    return Promise.resolve([results]);
-  },
-  close: () => Promise.resolve(),
-};
-
-
-/* LINES ABOVE CAN BE REMOVED */
-
-
-export default class YourDriverClass extends AbstractDriver<DriverLib, DriverOptions> implements IConnectionDriver {
+export default class SingleStoreDB extends AbstractDriver<DriverLib, DriverOptions> implements IConnectionDriver {
 
   /**
    * If you driver depends on node packages, list it below on `deps` prop.
    * It will be installed automatically on first use of your driver.
    */
-  public readonly deps: typeof AbstractDriver.prototype['deps'] = [{
-    type: AbstractDriver.CONSTANTS.DEPENDENCY_PACKAGE,
-    name: 'lodash',
-    // version: 'x.x.x',
-  }];
+  public readonly deps: typeof AbstractDriver.prototype['deps'] = [];
 
 
   queries = queries;
@@ -72,34 +41,42 @@ export default class YourDriverClass extends AbstractDriver<DriverLib, DriverOpt
       return this.connection;
     }
 
-    this.needToInstallDependencies && await this.needToInstallDependencies();
+    const singleStoreConnection = await mysql.createConnection({
+      host: this.credentials.server,
+      user: this.credentials.username,
+      port: this.credentials.port,
+      password: this.credentials.password,
+      database: this.credentials.database
+    });
+
+    // this.needToInstallDependencies && await this.needToInstallDependencies();
     /**
      * open your connection here!!!
      */
 
-    this.connection = fakeDbLib.open();
+
+    this.connection = Promise.resolve(singleStoreConnection);
     return this.connection;
   }
 
   public async close() {
-    if (!this.connection) return Promise.resolve();
-    /**
-     * cose you connection here!!
-     */
-    await fakeDbLib.close();
+    if (!this.connection)
+      return;
+
+    Promise.resolve((await this.connection).end);
     this.connection = null;
   }
 
   public query: (typeof AbstractDriver)['prototype']['query'] = async (queries, opt = {}) => {
     const db = await this.open();
-    const queriesResults = await db.query(queries);
+    const queriesResults = await db.execute(queries.toString());
     const resultsAgg: NSDatabase.IResult[] = [];
     queriesResults.forEach(queryResult => {
       resultsAgg.push({
         cols: Object.keys(queryResult[0]),
         connId: this.getId(),
-        messages: [{ date: new Date(), message: `Query ok with ${queriesResults.length} results`}],
-        results: queryResult,
+        messages: [{ date: new Date(), message: `Query ok with ${queriesResults.length} results` }],
+        results: [queryResult],
         query: queries.toString(),
         requestId: opt.requestId,
         resultId: generateId(),
@@ -144,7 +121,7 @@ export default class YourDriverClass extends AbstractDriver<DriverLib, DriverOpt
           isNullable: false,
           iconName: 'column',
           table: parent,
-        },{
+        }, {
           database: 'fakedb',
           label: `column${i++}`,
           type: ContextValue.COLUMN,
@@ -154,7 +131,7 @@ export default class YourDriverClass extends AbstractDriver<DriverLib, DriverOpt
           isNullable: false,
           iconName: 'column',
           table: parent,
-        },{
+        }, {
           database: 'fakedb',
           label: `column${i++}`,
           type: ContextValue.COLUMN,
@@ -164,7 +141,7 @@ export default class YourDriverClass extends AbstractDriver<DriverLib, DriverOpt
           isNullable: false,
           iconName: 'column',
           table: parent,
-        },{
+        }, {
           database: 'fakedb',
           label: `column${i++}`,
           type: ContextValue.COLUMN,
@@ -174,7 +151,7 @@ export default class YourDriverClass extends AbstractDriver<DriverLib, DriverOpt
           isNullable: false,
           iconName: 'column',
           table: parent,
-        },{
+        }, {
           database: 'fakedb',
           label: `column${i++}`,
           type: ContextValue.COLUMN,
@@ -207,7 +184,7 @@ export default class YourDriverClass extends AbstractDriver<DriverLib, DriverOpt
           type: item.childType,
           schema: 'fakeschema',
           childType: ContextValue.COLUMN,
-        },{
+        }, {
           database: 'fakedb',
           label: `${item.childType}${i++}`,
           type: item.childType,
@@ -239,7 +216,7 @@ export default class YourDriverClass extends AbstractDriver<DriverLib, DriverOpt
           type: itemType,
           schema: 'fakeschema',
           childType: ContextValue.COLUMN,
-        },{
+        }, {
           database: 'fakedb',
           label: `${search || 'table'}${j++}`,
           type: itemType,
@@ -266,7 +243,7 @@ export default class YourDriverClass extends AbstractDriver<DriverLib, DriverOpt
             isNullable: false,
             iconName: 'column',
             table: 'fakeTable'
-          },{
+          }, {
             database: 'fakedb',
             label: `${search || 'column'}${i++}`,
             type: ContextValue.COLUMN,
@@ -276,7 +253,7 @@ export default class YourDriverClass extends AbstractDriver<DriverLib, DriverOpt
             isNullable: false,
             iconName: 'column',
             table: 'fakeTable'
-          },{
+          }, {
             database: 'fakedb',
             label: `${search || 'column'}${i++}`,
             type: ContextValue.COLUMN,
@@ -286,7 +263,7 @@ export default class YourDriverClass extends AbstractDriver<DriverLib, DriverOpt
             isNullable: false,
             iconName: 'column',
             table: 'fakeTable'
-          },{
+          }, {
             database: 'fakedb',
             label: `${search || 'column'}${i++}`,
             type: ContextValue.COLUMN,
@@ -296,7 +273,7 @@ export default class YourDriverClass extends AbstractDriver<DriverLib, DriverOpt
             isNullable: false,
             iconName: 'column',
             table: 'fakeTable'
-          },{
+          }, {
             database: 'fakedb',
             label: `${search || 'column'}${i++}`,
             type: ContextValue.COLUMN,

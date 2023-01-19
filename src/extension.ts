@@ -75,4 +75,4 @@ export async function activate(extContext: ExtensionContext): Promise<IDriverExt
   };
 }
 
-export function deactivate() {}
+export function deactivate() { }

@@ -1,7 +1,7 @@
 {
-  "name": "driver-template",
-  "displayName": "Driver Template",
-  "description": "Driver Template to be used as base for new VSCode SQLTools drivers",
+  "name": "sqltools-driver-singlestore",
+  "displayName": "SQLTools SingleStore",
+  "description": "SQLTools Driver for SingleStore",
   "version": "0.0.1",
   "engines": {
     "vscode": "^1.42.0"
@@ -37,12 +37,13 @@
   "dependencies": {
     "@sqltools/base-driver": "latest",
     "@sqltools/types": "latest",
+    "mysql2": "^3.0.1",
     "uuid": "^7.0.2"
   },
   "devDependencies": {
     "@babel/preset-env": "^7.5.5",
     "@types/node": "^14.0.9",
     "@types/vscode": "^1.42.0",
-    "typescript": "^3.7.3"
+    "typescript": "^3.9.10"
   }
 }
