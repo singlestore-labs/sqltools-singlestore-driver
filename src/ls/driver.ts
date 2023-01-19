@@ -19,23 +19,9 @@ type DriverOptions = any;
 
 export default class SingleStoreDB extends AbstractDriver<DriverLib, DriverOptions> implements IConnectionDriver {
 
-  /**
-   * If you driver depends on node packages, list it below on `deps` prop.
-   * It will be installed automatically on first use of your driver.
-   */
-  public readonly deps: typeof AbstractDriver.prototype['deps'] = [];
-
-
   queries = queries;
 
-  /** if you need to require your lib in runtime and then
-   * use `this.lib.methodName()` anywhere and vscode will take care of the dependencies
-   * to be installed on a cache folder
-   **/
-  // private get lib() {
-  //   return this.requireDep('node-packge-name') as DriverLib;
-  // }
-
+  // TODO: use connection pool
   public async open() {
     if (this.connection) {
       return this.connection;
@@ -49,22 +35,17 @@ export default class SingleStoreDB extends AbstractDriver<DriverLib, DriverOptio
       database: this.credentials.database
     });
 
-    // this.needToInstallDependencies && await this.needToInstallDependencies();
-    /**
-     * open your connection here!!!
-     */
-
-
     this.connection = Promise.resolve(singleStoreConnection);
     return this.connection;
   }
 
   public async close() {
     if (!this.connection)
-      return;
+      return Promise.resolve();
 
-    Promise.resolve((await this.connection).end);
-    this.connection = null;
+    return this.connection.then((connection) => {
+      return connection.end();
+    })
   }
 
   public query: (typeof AbstractDriver)['prototype']['query'] = async (queries, opt = {}) => {
