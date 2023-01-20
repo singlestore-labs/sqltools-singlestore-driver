@@ -1,10 +1,10 @@
 import * as vscode from 'vscode';
 import { IExtension, IExtensionPlugin, IDriverExtensionApi } from '@sqltools/types';
-import { ExtensionContext } from 'vscode';
 import { DRIVER_ALIASES } from './constants';
-const { publisher, name, displayName } = require('../package.json');
-
-export async function activate(extContext: ExtensionContext): Promise<IDriverExtensionApi> {
+const AUTHENTICATION_PROVIDER = 'sqltools-driver-credentials';
+const { publisher, name } = require('../package.json');
+const driverName = 'MySQL/MariaDB';
+export async function activate(extContext: vscode.ExtensionContext): Promise<IDriverExtensionApi> {
   const sqltools = vscode.extensions.getExtension<IExtension>('mtxr.sqltools');
   if (!sqltools) {
     throw new Error('SQLTools not installed');
@@ -16,63 +16,106 @@ export async function activate(extContext: ExtensionContext): Promise<IDriverExt
   const extensionId = `${publisher}.${name}`;
   const plugin: IExtensionPlugin = {
     extensionId,
-    name: `${displayName} Plugin`,
+    name: `${driverName} Plugin`,
     type: 'driver',
     async register(extension) {
       // register ext part here
+      // mysql
       extension.resourcesMap().set(`driver/${DRIVER_ALIASES[0].value}/icons`, {
         active: extContext.asAbsolutePath('icons/active.png'),
         default: extContext.asAbsolutePath('icons/default.png'),
         inactive: extContext.asAbsolutePath('icons/inactive.png'),
       });
+      // mariadb
+      extension.resourcesMap().set(`driver/${DRIVER_ALIASES[1].value}/icons`, {
+        active: extContext.asAbsolutePath('icons/mariadb/active.png'),
+        default: extContext.asAbsolutePath('icons/mariadb/default.png'),
+        inactive: extContext.asAbsolutePath('icons/mariadb/inactive.png'),
+      });
       DRIVER_ALIASES.forEach(({ value }) => {
         extension.resourcesMap().set(`driver/${value}/extension-id`, extensionId);
-        extension
-          .resourcesMap()
-          .set(`driver/${value}/connection-schema`, extContext.asAbsolutePath('connection.schema.json'));
+        extension.resourcesMap().set(`driver/${value}/connection-schema`, extContext.asAbsolutePath('connection.schema.json'));
         extension.resourcesMap().set(`driver/${value}/ui-schema`, extContext.asAbsolutePath('ui.schema.json'));
       });
       await extension.client.sendRequest('ls/RegisterPlugin', { path: extContext.asAbsolutePath('out/ls/plugin.js') });
-    },
+    }
   };
   api.registerPlugin(plugin);
   return {
-    driverName: displayName,
+    driverName,
     parseBeforeSaveConnection: ({ connInfo }) => {
-      /**
-       * This hook is called before saving the connection using the assistant
-       * so you can do any transformations before saving it to disk.active
-       * EG: relative file path transformation, string manipulation etc
-       * Below is the exmaple for SQLite, where we save the DB path relative to workspace
-       * and later we transform it back to absolute before editing
-       */
-      // if (path.isAbsolute(connInfo.database)) {
-      //   const databaseUri = Uri.file(connInfo.database);
-      //   const dbWorkspace = workspace.getWorkspaceFolder(databaseUri);
-      //   if (dbWorkspace) {
-      //     connInfo.database = `\$\{workspaceFolder:${dbWorkspace.name}\}/${workspace.asRelativePath(connInfo.database, false)}`;
-      //   }
-      // }
+      const propsToRemove = ['connectionMethod', 'id', 'usePassword'];
+      if (connInfo.usePassword) {
+        if (connInfo.usePassword.toString().toLowerCase().includes('ask')) {
+          connInfo.askForPassword = true;
+          propsToRemove.push('password');
+        } else if (connInfo.usePassword.toString().toLowerCase().includes('empty')) {
+          connInfo.password = '';
+          propsToRemove.push('askForPassword');
+        } else if(connInfo.usePassword.toString().toLowerCase().includes('save')) {
+          propsToRemove.push('askForPassword');
+        } else if(connInfo.usePassword.toString().toLowerCase().includes('secure')) {
+          propsToRemove.push('password');
+          propsToRemove.push('askForPassword');
+        }
+      }
+      if (connInfo.connectString) {
+        propsToRemove.push('port');
+        propsToRemove.push('askForPassword');
+      }
+      propsToRemove.forEach(p => delete connInfo[p]);
+
       return connInfo;
     },
     parseBeforeEditConnection: ({ connInfo }) => {
+      const formData: typeof connInfo = {
+        ...connInfo,
+        connectionMethod: 'Server and Port',
+      };
+      if (connInfo.socketPath) {
+        formData.connectionMethod = 'Socket File';
+      } else if (connInfo.connectString) {
+        formData.connectionMethod = 'Connection String';
+      }
+
+      if (connInfo.askForPassword) {
+        formData.usePassword = 'Ask on connect';
+        delete formData.password;
+      } else if (typeof connInfo.password === 'string') {
+        delete formData.askForPassword;
+        formData.usePassword = connInfo.password ? 'Save as plaintext in settings' : 'Use empty password';
+      } else {
+        formData.usePassword = 'SQLTools Driver Credentials';
+      }
+      return formData;
+    },
+    resolveConnection: async ({ connInfo }) => {
       /**
-       * This hook is called before editing the connection using the assistant
-       * so you can do any transformations before editing it.
-       * EG: absolute file path transformation, string manipulation etc
-       * Below is the exmaple for SQLite, where we use relative path to save,
-       * but we transform to asolute before editing
+       * This hook is called after a connection definition has been fetched
+       * from settings and is about to be used to connect.
        */
-      // if (!path.isAbsolute(connInfo.database) && /\$\{workspaceFolder:(.+)}/g.test(connInfo.database)) {
-      //   const workspaceName = connInfo.database.match(/\$\{workspaceFolder:(.+)}/)[1];
-      //   const dbWorkspace = workspace.workspaceFolders.find(w => w.name === workspaceName);
-      //   if (dbWorkspace)
-      //     connInfo.database = path.resolve(dbWorkspace.uri.fsPath, connInfo.database.replace(/\$\{workspaceFolder:(.+)}/g, './'));
-      // }
+      if (connInfo.password === undefined && !connInfo.askForPassword && !connInfo.connectString) {
+        const scopes = [connInfo.name, (connInfo.username || "")];
+        let session = await vscode.authentication.getSession(
+          AUTHENTICATION_PROVIDER,
+          scopes,
+          { silent: true }
+        );
+        if (!session) {
+            session = await vscode.authentication.getSession(
+              AUTHENTICATION_PROVIDER,
+              scopes,
+              { createIfNone: true }
+            );
+        }
+        if (session) {
+          connInfo.password = session.accessToken;
+          }
+      }
       return connInfo;
     },
     driverAliases: DRIVER_ALIASES,
-  };
+  }
 }
 
-export function deactivate() { }
+export function deactivate() {}

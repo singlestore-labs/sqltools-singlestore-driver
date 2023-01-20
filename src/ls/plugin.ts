@@ -1,13 +1,13 @@
 import { ILanguageServerPlugin } from '@sqltools/types';
-import SingleStoreDB from './driver';
+import MySQL from './driver';
 import { DRIVER_ALIASES } from './../constants';
 
-const SingleStoreDBDriverPlugin: ILanguageServerPlugin = {
+const MySQLDriverPlugin: ILanguageServerPlugin = {
   register(server) {
     DRIVER_ALIASES.forEach(({ value }) => {
-      server.getContext().drivers.set(value, SingleStoreDB as any);
+      server.getContext().drivers.set(value, MySQL);
     });
   }
 }
 
-export default SingleStoreDBDriverPlugin;
+export default MySQLDriverPlugin;

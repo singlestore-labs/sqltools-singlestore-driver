@@ -1,333 +1,193 @@
 import AbstractDriver from '@sqltools/base-driver';
-import queries from './queries';
-import { IConnectionDriver, MConnectionExplorer, NSDatabase, ContextValue, Arg0 } from '@sqltools/types';
+import * as Queries from './queries';
+import MySQLX from './xprotocol';
+import MySQLDefault from './default';
+// import compareVersions from 'compare-versions';
+import { IConnectionDriver, IConnection, NSDatabase, Arg0, MConnectionExplorer, ContextValue } from '@sqltools/types';
+//import generateId from '@sqltools/util/internal-id';
+import keywordsCompletion from './keywords';
 import { v4 as generateId } from 'uuid';
-import MySQLLib, { QueryOptions } from 'mysql2/promise';
-import { countBy } from 'lodash';
 
-export default class SingleStoreDB extends AbstractDriver<MySQLLib.Pool, MySQLLib.PoolOptions> implements IConnectionDriver {
+const toBool = (v: any) => v && (v.toString() === '1' || v.toString().toLowerCase() === 'true' || v.toString().toLowerCase() === 'yes');
 
-  queries = queries;
+export default class MySQL<O = any> extends AbstractDriver<any, O> implements IConnectionDriver {
+  queries = Queries;
+  private driver: AbstractDriver<any, any>;
 
-  public async open() {
-    if (this.connection) {
-      return this.connection;
+  constructor(public credentials: IConnection, getWorkSpaceFolders) {
+    // move to diferent drivers
+    super(credentials, getWorkSpaceFolders);
+    if (this.credentials.mysqlOptions && this.credentials.mysqlOptions.authProtocol === 'xprotocol') {
+      this.driver = new MySQLX(credentials, getWorkSpaceFolders);
+    } else {
+      this.driver = new MySQLDefault(credentials, getWorkSpaceFolders);
     }
-
-    const pool = MySQLLib.createPool({
-      // TODO: add parameter for connection timeout
-      connectTimeout: 1000,
-      database: this.credentials.database,
-      host: this.credentials.server,
-      port: this.credentials.port,
-      password: this.credentials.password,
-      user: this.credentials.username,
-      multipleStatements: true,
-      dateStrings: true,
-      bigNumberStrings: true,
-      supportBigNumbers: true,
-    });
-
-    return new Promise<MySQLLib.Pool>((resolve, reject) => {
-      return pool.getConnection().then((conn) => {
-        conn.ping().then(() => {
-          this.connection = Promise.resolve(pool);
-          return resolve(this.connection)
-        }, reject)
-      }, reject)
-    });
+  }
+  public open() {
+    return this.driver.open();
   }
 
-  public async close() {
-    if (!this.connection)
-      return Promise.resolve();
-
-    return this.connection.then((pool) => {
-      return new Promise<void>((resolve, reject) => {
-        pool.end().then(() => {
-          this.connection = null;
-          return resolve();
-        }, reject)
-      });
-    });
+  public close() {
+    return this.driver.close();
   }
 
-  public query: (typeof AbstractDriver)['prototype']['query'] = async (query, opt = {}) => {
-    return this.open().then((conn): Promise<NSDatabase.IResult[]> => {
-      const { requestId } = opt;
-      return new Promise((resolve, reject) => {
-        const options: QueryOptions = {
-          sql: query.toString(),
-          nestTables: true, // TODO: understand why it is needed
+  public query: (typeof AbstractDriver)['prototype']['query'] = (query, opt = {}) => {
+    return this.driver.query(query, opt)
+      .catch(err => {
+        if (opt.throwIfError) {
+          throw new Error(err.message);
         }
-        conn.query(options, (error, results, fields) => {
-          if (error) return reject(error);
-          try {
-            const queries = query.toString().split(';'); // TODO: Write better parser
-            if (results && !Array.isArray(results[0]) && typeof results[0] !== 'undefined') { // TODO: understand why it is needed
-              results = [results];
-            }
-            return resolve(queries.map((q, i): NSDatabase.IResult => {
-              const r = results[i] || [];
-              const messages = [];
-              if (r.affectedRows) {
-                messages.push(`${r.affectedRows} rows were affected.`);
-              }
-              if (r.changedRows) {
-                messages.push(`${r.changedRows} rows were changed.`);
-              }
-              if (fields) {
-                fields = fields.filter(field => typeof field !== 'undefined'); // TODO: understand why it is needed
-              }
-              return {
-                connId: this.getId(),
-                requestId,
-                resultId: generateId(),
-                cols: fields && Array.isArray(fields) ? this.getColumnNames(fields) : [],
-                messages,
-                query: q,
-                results: Array.isArray(r) ? this.mapRows(r, fields) : [],
-              };
-            }));
-          } catch (err) {
-            if (opt.throwIfError) {
-              throw new Error(err.message);
-            }
-            return [<NSDatabase.IResult>{
-              connId: this.getId(),
-              requestId: opt.requestId,
-              resultId: generateId(),
-              cols: [],
-              messages: [
-                this.prepareMessage([
-                  (err && err.message || err.toString()),
-                ].filter(Boolean).join(' '))
-              ],
-              error: true,
-              rawError: err,
-              query,
-              results: [],
-            }];
-          };
-        })
-      })
-    })
+        return [<NSDatabase.IResult>{
+          connId: this.getId(),
+          requestId: opt.requestId,
+          resultId: generateId(),
+          cols: [],
+          messages: [
+            this.prepareMessage([
+              (err && err.message || err.toString()),
+            ].filter(Boolean).join(' '))
+          ],
+          error: true,
+          rawError: err,
+          query,
+          results: [],
+        }];
+      });
   }
 
-  private getColumnNames(fields: MySQLLib.FieldPacket[] = []): string[] {
-    const count = countBy(fields, ({ name }) => name);
-    return fields.map(({ table, name }) => count[name] > 1 ? `${table}.${name}` : name);
-  }
-
-  private mapRows(rows: any[] = [], fields: MySQLLib.FieldPacket[] = []): any[] {
-    const names = this.getColumnNames(fields);
-    return rows.map((row) => fields.reduce((r, { table, name }, i) => ({ ...r, [names[i]]: this.castResultsIfNeeded(row[table][name]) }), {}));
-  }
-
-  private castResultsIfNeeded(data: any) {
-    if (!Buffer.isBuffer(data)) return data;
-    return Buffer.from(data).toString('hex');
-  }
-
-  public async testConnection() {
-    await this.open();
-    await this.query('SELECT 1', {});
-  }
-
-  /**
-   * This method is a helper to generate the connection explorer tree.
-   * it gets the child items based on current item
-   */
   public async getChildrenForItem({ item, parent }: Arg0<IConnectionDriver['getChildrenForItem']>) {
     switch (item.type) {
       case ContextValue.CONNECTION:
       case ContextValue.CONNECTED_CONNECTION:
+        return this.queryResults(this.queries.fetchDatabases(item));
+      case ContextValue.TABLE:
+      case ContextValue.VIEW:
+        return this.getColumns(item as NSDatabase.ITable);
+      case ContextValue.RESOURCE_GROUP:
+        return this.getChildrenForGroup({ item, parent });
+      case ContextValue.DATABASE:
         return <MConnectionExplorer.IChildItem[]>[
           { label: 'Tables', type: ContextValue.RESOURCE_GROUP, iconId: 'folder', childType: ContextValue.TABLE },
           { label: 'Views', type: ContextValue.RESOURCE_GROUP, iconId: 'folder', childType: ContextValue.VIEW },
+          // { label: 'Functions', type: ContextValue.RESOURCE_GROUP, iconId: 'folder', childType: ContextValue.FUNCTION },
         ];
-      case ContextValue.TABLE:
-      case ContextValue.VIEW:
-        let i = 0;
-        return <NSDatabase.IColumn[]>[{
-          database: 'fakedb',
-          label: `column${i++}`,
-          type: ContextValue.COLUMN,
-          dataType: 'faketype',
-          schema: 'fakeschema',
-          childType: ContextValue.NO_CHILD,
-          isNullable: false,
-          iconName: 'column',
-          table: parent,
-        }, {
-          database: 'fakedb',
-          label: `column${i++}`,
-          type: ContextValue.COLUMN,
-          dataType: 'faketype',
-          schema: 'fakeschema',
-          childType: ContextValue.NO_CHILD,
-          isNullable: false,
-          iconName: 'column',
-          table: parent,
-        }, {
-          database: 'fakedb',
-          label: `column${i++}`,
-          type: ContextValue.COLUMN,
-          dataType: 'faketype',
-          schema: 'fakeschema',
-          childType: ContextValue.NO_CHILD,
-          isNullable: false,
-          iconName: 'column',
-          table: parent,
-        }, {
-          database: 'fakedb',
-          label: `column${i++}`,
-          type: ContextValue.COLUMN,
-          dataType: 'faketype',
-          schema: 'fakeschema',
-          childType: ContextValue.NO_CHILD,
-          isNullable: false,
-          iconName: 'column',
-          table: parent,
-        }, {
-          database: 'fakedb',
-          label: `column${i++}`,
-          type: ContextValue.COLUMN,
-          dataType: 'faketype',
-          schema: 'fakeschema',
-          childType: ContextValue.NO_CHILD,
-          isNullable: false,
-          iconName: 'column',
-          table: parent,
-        }];
-      case ContextValue.RESOURCE_GROUP:
-        return this.getChildrenForGroup({ item, parent });
     }
     return [];
   }
-
-  /**
-   * This method is a helper to generate the connection explorer tree.
-   * It gets the child based on child types
-   */
   private async getChildrenForGroup({ parent, item }: Arg0<IConnectionDriver['getChildrenForItem']>) {
-    console.log({ item, parent });
     switch (item.childType) {
       case ContextValue.TABLE:
+        return this.queryResults(this.queries.fetchTables(parent as NSDatabase.ISchema)).then(res => res.map(t => ({ ...t, isView: toBool(t.isView) })));
       case ContextValue.VIEW:
-        let i = 0;
-        return <MConnectionExplorer.IChildItem[]>[{
-          database: 'fakedb',
-          label: `${item.childType}${i++}`,
-          type: item.childType,
-          schema: 'fakeschema',
-          childType: ContextValue.COLUMN,
-        }, {
-          database: 'fakedb',
-          label: `${item.childType}${i++}`,
-          type: item.childType,
-          schema: 'fakeschema',
-          childType: ContextValue.COLUMN,
-        },
-        {
-          database: 'fakedb',
-          label: `${item.childType}${i++}`,
-          type: item.childType,
-          schema: 'fakeschema',
-          childType: ContextValue.COLUMN,
-        }];
+        return this.queryResults(this.queries.fetchViews(parent as NSDatabase.ISchema)).then(res => res.map(t => ({ ...t, isView: toBool(t.isView) })));
+      case ContextValue.FUNCTION:
+        return this.queryResults(this.queries.fetchFunctions(parent as NSDatabase.ISchema));
     }
     return [];
   }
 
-  /**
-   * This method is a helper for intellisense and quick picks.
-   */
-  public async searchItems(itemType: ContextValue, search: string, _extraParams: any = {}): Promise<NSDatabase.SearchableItem[]> {
+  public searchItems(itemType: ContextValue, search: string, extraParams: any = {}): Promise<NSDatabase.SearchableItem[]> {
     switch (itemType) {
       case ContextValue.TABLE:
-      case ContextValue.VIEW:
-        let j = 0;
-        return [{
-          database: 'fakedb',
-          label: `${search || 'table'}${j++}`,
-          type: itemType,
-          schema: 'fakeschema',
-          childType: ContextValue.COLUMN,
-        }, {
-          database: 'fakedb',
-          label: `${search || 'table'}${j++}`,
-          type: itemType,
-          schema: 'fakeschema',
-          childType: ContextValue.COLUMN,
-        },
-        {
-          database: 'fakedb',
-          label: `${search || 'table'}${j++}`,
-          type: itemType,
-          schema: 'fakeschema',
-          childType: ContextValue.COLUMN,
-        }]
+        return this.queryResults(this.queries.searchTables({ search })).then(r => r.map(t => {
+          t.isView = toBool(t.isView);
+          return t;
+        }));
       case ContextValue.COLUMN:
-        let i = 0;
-        return [
-          {
-            database: 'fakedb',
-            label: `${search || 'column'}${i++}`,
-            type: ContextValue.COLUMN,
-            dataType: 'faketype',
-            schema: 'fakeschema',
-            childType: ContextValue.NO_CHILD,
-            isNullable: false,
-            iconName: 'column',
-            table: 'fakeTable'
-          }, {
-            database: 'fakedb',
-            label: `${search || 'column'}${i++}`,
-            type: ContextValue.COLUMN,
-            dataType: 'faketype',
-            schema: 'fakeschema',
-            childType: ContextValue.NO_CHILD,
-            isNullable: false,
-            iconName: 'column',
-            table: 'fakeTable'
-          }, {
-            database: 'fakedb',
-            label: `${search || 'column'}${i++}`,
-            type: ContextValue.COLUMN,
-            dataType: 'faketype',
-            schema: 'fakeschema',
-            childType: ContextValue.NO_CHILD,
-            isNullable: false,
-            iconName: 'column',
-            table: 'fakeTable'
-          }, {
-            database: 'fakedb',
-            label: `${search || 'column'}${i++}`,
-            type: ContextValue.COLUMN,
-            dataType: 'faketype',
-            schema: 'fakeschema',
-            childType: ContextValue.NO_CHILD,
-            isNullable: false,
-            iconName: 'column',
-            table: 'fakeTable'
-          }, {
-            database: 'fakedb',
-            label: `${search || 'column'}${i++}`,
-            type: ContextValue.COLUMN,
-            dataType: 'faketype',
-            schema: 'fakeschema',
-            childType: ContextValue.NO_CHILD,
-            isNullable: false,
-            iconName: 'column',
-            table: 'fakeTable'
-          }
-        ];
+        return this.queryResults(this.queries.searchColumns({ search, ...extraParams })).then(r => r.map(c => {
+          c.isFk = toBool(c.isFk);
+          c.isFk = toBool(c.isFk);
+          return c;
+        }));
     }
-    return [];
   }
 
-  public getStaticCompletions: IConnectionDriver['getStaticCompletions'] = async () => {
-    return {};
+  private async getColumns(parent: NSDatabase.ITable): Promise<NSDatabase.IColumn[]> {
+    const results = await this.queryResults(this.queries.fetchColumns(parent));
+    return results.map((obj) => {
+      obj.isPk = toBool(obj.isPk);
+      obj.isFk = toBool(obj.isFk);
+
+      return <NSDatabase.IColumn>{
+        ...obj,
+        isNullable: toBool(obj.isNullable),
+        iconName: obj.isPk ? 'pk' : (obj.isFk ? 'fk' : null),
+        childType: ContextValue.NO_CHILD,
+        table: parent
+      };
+    });
+  }
+
+  // public async getFunctions(): Promise<NSDatabase.IFunction[]> {
+  //   const functions = await (
+  //     await this.is55OrNewer()
+  //       ? this.driver.query(this.queries.fetchFunctions)
+  //       : this.driver.query(this.queries.fetchFunctionsV55Older)
+  //   );
+
+  //   return functions[0].results
+  //     .reduce((prev, curr) => prev.concat(curr), [])
+  //     .map((obj) => {
+  //       return {
+  //         ...obj,
+  //         args: obj.args ? obj.args.split(/, */g) : [],
+  //         database: obj.dbname,
+  //         schema: obj.dbschema,
+  //       } as NSDatabase.IFunction;
+  //     })
+  // }
+
+  // mysqlVersion: string = null;
+
+  // private async getVersion() {
+  //   if (this.mysqlVersion) return Promise.resolve(this.mysqlVersion);
+  //   this.mysqlVersion = await this.queryResults<any>(`SHOW variables WHERE variable_name = 'version'`).then((res) => res[0].Value);
+  //   return this.mysqlVersion;
+  // }
+
+  // private async is55OrNewer() {
+  //   try {
+  //     await this.getVersion();
+  //     return compareVersions.compare(this.mysqlVersion, '5.5.0', '>=');
+  //   } catch (error) {
+  //     return true;
+  //   }
+  // }
+
+  private completionsCache: { [w: string]: NSDatabase.IStaticCompletion } = null;
+  public getStaticCompletions = async () => {
+    if (this.completionsCache) return this.completionsCache;
+    try {
+      this.completionsCache = {};
+      const items = await this.queryResults(/* sql */`
+      SELECT UPPER(word) AS label,
+        (
+          CASE
+            WHEN reserved = 1 THEN 'RESERVED KEYWORD'
+            ELSE 'KEYWORD'
+          END
+        ) AS "desc"
+      FROM INFORMATION_SCHEMA.KEYWORDS
+      ORDER BY word ASC
+      `);
+
+      items.forEach((item: any) => {
+        this.completionsCache[item.label] = {
+          label: item.label,
+          detail: item.label,
+          filterText: item.label,
+          sortText: (['SELECT', 'CREATE', 'UPDATE', 'DELETE'].includes(item.label) ? '2:' : '') + item.label,
+          documentation: {
+            value: `\`\`\`yaml\nWORD: ${item.label}\nTYPE: ${item.desc}\n\`\`\``,
+            kind: 'markdown'
+          }
+        }
+      });
+    } catch (error) {
+      // use default reserved words
+      this.completionsCache = keywordsCompletion;
+    }
+
+    return this.completionsCache;
   }
 }
