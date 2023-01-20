@@ -1,6 +1,5 @@
 import AbstractDriver from '@sqltools/base-driver';
 import * as Queries from './queries';
-import MySQLX from './xprotocol';
 import MySQLDefault from './default';
 // import compareVersions from 'compare-versions';
 import { IConnectionDriver, IConnection, NSDatabase, Arg0, MConnectionExplorer, ContextValue } from '@sqltools/types';
@@ -15,14 +14,10 @@ export default class MySQL<O = any> extends AbstractDriver<any, O> implements IC
   private driver: AbstractDriver<any, any>;
 
   constructor(public credentials: IConnection, getWorkSpaceFolders) {
-    // move to diferent drivers
     super(credentials, getWorkSpaceFolders);
-    if (this.credentials.mysqlOptions && this.credentials.mysqlOptions.authProtocol === 'xprotocol') {
-      this.driver = new MySQLX(credentials, getWorkSpaceFolders);
-    } else {
-      this.driver = new MySQLDefault(credentials, getWorkSpaceFolders);
-    }
+    this.driver = new MySQLDefault(credentials, getWorkSpaceFolders);
   }
+
   public open() {
     return this.driver.open();
   }

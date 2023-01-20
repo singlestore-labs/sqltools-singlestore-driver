@@ -1,7 +1,6 @@
 import MySQLLib from 'mysql';
 import AbstractDriver from '@sqltools/base-driver';
 import * as Queries from './queries';
-import fs from 'fs';
 import { IConnectionDriver, NSDatabase } from '@sqltools/types';
 import { countBy } from 'lodash';
 //import { parse as queryParse } from '@sqltools/util/query';
@@ -15,18 +14,8 @@ export default class MySQLDefault extends AbstractDriver<MySQLLib.Pool, MySQLLib
       return this.connection;
     }
 
-    const mysqlOptions: any = this.credentials.mysqlOptions || {};
-    if (typeof mysqlOptions.ssl === 'object') {
-      ['ca', 'cert', 'crl', 'key', 'pfx'].forEach((k) => {
-        if (!mysqlOptions.ssl[k]) return;
-        mysqlOptions.ssl[k] = fs.readFileSync(mysqlOptions.ssl[k]);
-      });
-    }
-
     const pool = MySQLLib.createPool(this.credentials.connectString || {
-      connectTimeout: this.credentials.connectionTimeout * 1000,
       database: this.credentials.database,
-      socketPath: this.credentials.socketPath,
       host: this.credentials.server,
       port: this.credentials.port,
       password: this.credentials.password,
@@ -35,7 +24,6 @@ export default class MySQLDefault extends AbstractDriver<MySQLLib.Pool, MySQLLib
       dateStrings: true,
       bigNumberStrings: true,
       supportBigNumbers: true,
-      ...mysqlOptions
     });
 
     return new Promise<MySQLLib.Pool>((resolve, reject) => {
