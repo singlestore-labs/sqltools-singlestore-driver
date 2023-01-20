@@ -4,6 +4,7 @@ import { IBaseQueries, ContextValue, NSDatabase } from '@sqltools/types';
 function escapeTableName(table: Partial<NSDatabase.ITable> | string) {
   let items: string[] = [];
   let tableObj = typeof table === 'string' ? <NSDatabase.ITable>{ label: table } : table;
+  // TODO: escape ` sign
   tableObj.schema && items.push(`\`${tableObj.schema}\``);
   items.push(`\`${tableObj.label}\``);
   return items.join('.');
@@ -13,6 +14,7 @@ export const describeTable: IBaseQueries['describeTable'] = queryFactory`
   DESCRIBE ${p => escapeTableName(p)}
 `;
 
+// TODO add different images for different key types
 export const fetchColumns: IBaseQueries['fetchColumns'] = queryFactory/*sql*/`
 SELECT
   C.COLUMN_NAME AS label,
@@ -20,29 +22,14 @@ SELECT
   C.TABLE_NAME AS "table",
   C.DATA_TYPE AS "dataType",
   CAST(C.CHARACTER_MAXIMUM_LENGTH AS UNSIGNED) AS size,
-  CAST(UPPER(
-    CONCAT(
-      C.DATA_TYPE,
-      CASE
-        WHEN C.DATA_TYPE = 'text' THEN ''
-        ELSE (
-          CASE
-            WHEN C.CHARACTER_MAXIMUM_LENGTH > 0 THEN (
-              CONCAT('(', C.CHARACTER_MAXIMUM_LENGTH, ')')
-            )
-            ELSE ''
-          END
-        )
-      END
-    )
-  ) AS CHAR CHARACTER SET utf8) AS "detail",
+  C.DATA_TYPE AS "detail",
   C.TABLE_CATALOG AS "catalog",
   C.TABLE_SCHEMA AS "database",
   C.TABLE_SCHEMA AS "schema",
   C.COLUMN_DEFAULT AS "defaultValue",
   C.IS_NULLABLE AS "isNullable",
   (CASE WHEN C.COLUMN_KEY = 'PRI' THEN 1 ELSE 0 END) AS "isPk",
-  (CASE WHEN KCU.REFERENCED_COLUMN_NAME IS NULL THEN 0 ELSE 1 END) AS "isFk"
+  0 AS "isFk"
 FROM
   INFORMATION_SCHEMA.COLUMNS AS C
   LEFT JOIN INFORMATION_SCHEMA.KEY_COLUMN_USAGE AS KCU ON (
@@ -107,10 +94,8 @@ SELECT
   '${ContextValue.DATABASE}' as "type",
   'database' as "detail"
 FROM information_schema.schemata
-WHERE schema_name NOT IN ('information_schema', 'performance_schema', 'sys', 'mysql')
-    OR schema_name = '${p => p.database}'
+WHERE schema_name NOT IN ('information_schema', 'cluster', 'memsql')
 ORDER BY
-  schema_name <> '${p => p.database}', 
   schema_name
 `;
 

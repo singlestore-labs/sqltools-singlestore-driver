@@ -64,9 +64,10 @@ export default class SingleStoreDB<O = any> extends AbstractDriver<any, O> imple
         conn.query({ sql: query.toString(), nestTables: true }, (error, results, fields) => {
           if (error) return reject(error);
           try {
-            // TODO write query splitter
+            // TODO: write query splitter
             // const queries = queryParse(query.toString());
             const queries = query.toString().split(';');
+            // TODO: understand, why this is needed
             if (results && !Array.isArray(results[0]) && typeof results[0] !== 'undefined') {
               results = [results];
             }
@@ -80,12 +81,13 @@ export default class SingleStoreDB<O = any> extends AbstractDriver<any, O> imple
                 messages.push(`${r.changedRows} rows were changed.`);
               }
               if (fields) {
+                // TODO: understand, why this is needed
                 fields = fields.filter(field => typeof field !== 'undefined');
               }
               return {
                 connId: this.getId(),
                 requestId,
-                resultId: generateId(),
+                resultId: generateId(), // TODO: understand, why this is needed
                 cols: fields && Array.isArray(fields) ? this.getColumnNames(fields) : [],
                 messages,
                 query: q,
@@ -139,20 +141,21 @@ export default class SingleStoreDB<O = any> extends AbstractDriver<any, O> imple
       case ContextValue.CONNECTION:
       case ContextValue.CONNECTED_CONNECTION:
         return this.queryResults(this.queries.fetchDatabases(item));
-      case ContextValue.TABLE:
-      case ContextValue.VIEW:
-        return this.getColumns(item as NSDatabase.ITable);
-      case ContextValue.RESOURCE_GROUP:
-        return this.getChildrenForGroup({ item, parent });
       case ContextValue.DATABASE:
         return <MConnectionExplorer.IChildItem[]>[
           { label: 'Tables', type: ContextValue.RESOURCE_GROUP, iconId: 'folder', childType: ContextValue.TABLE },
           { label: 'Views', type: ContextValue.RESOURCE_GROUP, iconId: 'folder', childType: ContextValue.VIEW },
-          // { label: 'Functions', type: ContextValue.RESOURCE_GROUP, iconId: 'folder', childType: ContextValue.FUNCTION },
+          { label: 'Functions', type: ContextValue.RESOURCE_GROUP, iconId: 'folder', childType: ContextValue.FUNCTION },
         ];
+      case ContextValue.RESOURCE_GROUP:
+        return this.getChildrenForGroup({ item, parent });
+      case ContextValue.TABLE:
+      case ContextValue.VIEW:
+        return this.getColumns(item as NSDatabase.ITable);
     }
     return [];
   }
+
   private async getChildrenForGroup({ parent, item }: Arg0<IConnectionDriver['getChildrenForItem']>) {
     switch (item.childType) {
       case ContextValue.TABLE:
@@ -163,22 +166,6 @@ export default class SingleStoreDB<O = any> extends AbstractDriver<any, O> imple
         return this.queryResults(this.queries.fetchFunctions(parent as NSDatabase.ISchema));
     }
     return [];
-  }
-
-  public searchItems(itemType: ContextValue, search: string, extraParams: any = {}): Promise<NSDatabase.SearchableItem[]> {
-    switch (itemType) {
-      case ContextValue.TABLE:
-        return this.queryResults(this.queries.searchTables({ search })).then(r => r.map(t => {
-          t.isView = toBool(t.isView);
-          return t;
-        }));
-      case ContextValue.COLUMN:
-        return this.queryResults(this.queries.searchColumns({ search, ...extraParams })).then(r => r.map(c => {
-          c.isFk = toBool(c.isFk);
-          c.isFk = toBool(c.isFk);
-          return c;
-        }));
-    }
   }
 
   private async getColumns(parent: NSDatabase.ITable): Promise<NSDatabase.IColumn[]> {
@@ -195,6 +182,23 @@ export default class SingleStoreDB<O = any> extends AbstractDriver<any, O> imple
         table: parent
       };
     });
+  }
+
+
+  public searchItems(itemType: ContextValue, search: string, extraParams: any = {}): Promise<NSDatabase.SearchableItem[]> {
+    switch (itemType) {
+      case ContextValue.TABLE:
+        return this.queryResults(this.queries.searchTables({ search })).then(r => r.map(t => {
+          t.isView = toBool(t.isView);
+          return t;
+        }));
+      case ContextValue.COLUMN:
+        return this.queryResults(this.queries.searchColumns({ search, ...extraParams })).then(r => r.map(c => {
+          c.isFk = toBool(c.isFk);
+          c.isFk = toBool(c.isFk);
+          return c;
+        }));
+    }
   }
 
   private completionsCache: { [w: string]: NSDatabase.IStaticCompletion } = null;
