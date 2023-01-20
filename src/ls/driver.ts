@@ -146,6 +146,7 @@ export default class SingleStoreDB<O = any> extends AbstractDriver<any, O> imple
           { label: 'Tables', type: ContextValue.RESOURCE_GROUP, iconId: 'folder', childType: ContextValue.TABLE },
           { label: 'Views', type: ContextValue.RESOURCE_GROUP, iconId: 'folder', childType: ContextValue.VIEW },
           { label: 'Functions', type: ContextValue.RESOURCE_GROUP, iconId: 'folder', childType: ContextValue.FUNCTION },
+          { label: 'Procedures', type: ContextValue.RESOURCE_GROUP, iconId: 'bracket-dot', childType: ContextValue.FUNCTION },
         ];
       case ContextValue.RESOURCE_GROUP:
         return this.getChildrenForGroup({ item, parent });
@@ -163,7 +164,11 @@ export default class SingleStoreDB<O = any> extends AbstractDriver<any, O> imple
       case ContextValue.VIEW:
         return this.queryResults(this.queries.fetchViews(parent as NSDatabase.ISchema)).then(res => res.map(t => ({ ...t, isView: toBool(t.isView) })));
       case ContextValue.FUNCTION:
-        return this.queryResults(this.queries.fetchFunctions(parent as NSDatabase.ISchema));
+        if (item.label === 'Functions') {
+          return this.queryResults(this.queries.fetchFunctions(parent as NSDatabase.ISchema));
+        }
+        return this.queryResults(this.queries.fetchProcedures(parent as NSDatabase.ISchema));
+      
     }
     return [];
   }

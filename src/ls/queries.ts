@@ -71,7 +71,21 @@ ROUTINE_SCHEMA AS "database"
 FROM INFORMATION_SCHEMA.ROUTINES AS R
 WHERE
   R.ROUTINE_SCHEMA = '${p => p.database}'
+  and R.ROUTINE_TYPE = 'FUNCTION'
 ORDER BY R.SPECIFIC_NAME
+;`;
+
+export const fetchProcedures: IBaseQueries['fetchFunctions'] = queryFactory`
+SELECT
+SPECIFIC_NAME AS label,
+ROUTINE_TYPE AS "type",
+ROUTINE_SCHEMA AS "schema",
+ROUTINE_SCHEMA AS "database"
+FROM INFORMATION_SCHEMA.ROUTINES AS R
+WHERE
+  R.ROUTINE_SCHEMA = '${p => p.database}'
+  and R.ROUTINE_TYPE = 'PROCEDURE'
+ORDER BY R.SPECIFIC_NAME 
 ;`;
 
 const fetchTablesAndViews = (type: ContextValue, tableType = 'BASE TABLE'): IBaseQueries['fetchTables'] => queryFactory`
