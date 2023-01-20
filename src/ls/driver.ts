@@ -3,7 +3,7 @@ import * as Queries from './queries';
 import MySQLLib from 'mysql';
 import { countBy } from 'lodash';
 // import compareVersions from 'compare-versions';
-import { IConnectionDriver, IConnection, NSDatabase, Arg0, MConnectionExplorer, ContextValue } from '@sqltools/types';
+import { IConnectionDriver, NSDatabase, Arg0, MConnectionExplorer, ContextValue } from '@sqltools/types';
 //import generateId from '@sqltools/util/internal-id';
 import keywordsCompletion from './keywords';
 import { v4 as generateId } from 'uuid';
