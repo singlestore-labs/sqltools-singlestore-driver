@@ -201,40 +201,7 @@ export default class SingleStoreDB<O = any> extends AbstractDriver<any, O> imple
     }
   }
 
-  private completionsCache: { [w: string]: NSDatabase.IStaticCompletion } = null;
   public getStaticCompletions = async () => {
-    if (this.completionsCache) return this.completionsCache;
-    try {
-      this.completionsCache = {};
-      const items = await this.queryResults(/* sql */`
-      SELECT UPPER(word) AS label,
-        (
-          CASE
-            WHEN reserved = 1 THEN 'RESERVED KEYWORD'
-            ELSE 'KEYWORD'
-          END
-        ) AS "desc"
-      FROM INFORMATION_SCHEMA.KEYWORDS
-      ORDER BY word ASC
-      `);
-
-      items.forEach((item: any) => {
-        this.completionsCache[item.label] = {
-          label: item.label,
-          detail: item.label,
-          filterText: item.label,
-          sortText: (['SELECT', 'CREATE', 'UPDATE', 'DELETE'].includes(item.label) ? '2:' : '') + item.label,
-          documentation: {
-            value: `\`\`\`yaml\nWORD: ${item.label}\nTYPE: ${item.desc}\n\`\`\``,
-            kind: 'markdown'
-          }
-        }
-      });
-    } catch (error) {
-      // use default reserved words
-      this.completionsCache = keywordsCompletion;
-    }
-
-    return this.completionsCache;
+    return keywordsCompletion;
   }
 }
