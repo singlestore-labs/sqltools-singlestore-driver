@@ -63,6 +63,15 @@ FROM ${p => escapeTableName(p.table)}
 `;
 
 export const fetchFunctions: IBaseQueries['fetchFunctions'] = queryFactory`
+SELECT
+SPECIFIC_NAME AS label,
+ROUTINE_TYPE AS "type",
+ROUTINE_SCHEMA AS "schema",
+ROUTINE_SCHEMA AS "database"
+FROM INFORMATION_SCHEMA.ROUTINES AS R
+WHERE
+  R.ROUTINE_SCHEMA = '${p => p.database}'
+ORDER BY R.SPECIFIC_NAME
 ;`;
 
 const fetchTablesAndViews = (type: ContextValue, tableType = 'BASE TABLE'): IBaseQueries['fetchTables'] => queryFactory`
