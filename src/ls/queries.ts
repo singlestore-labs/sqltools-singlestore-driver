@@ -50,6 +50,7 @@ ORDER BY
   C.ORDINAL_POSITION
 `;
 
+// TODO allow fetching only first page
 export const fetchRecords: IBaseQueries['fetchRecords'] = queryFactory`
 SELECT *
 FROM ${p => escapeTableName(p.table)}
@@ -159,7 +160,7 @@ SELECT
   C.COLUMN_DEFAULT AS "defaultValue",
   C.IS_NULLABLE AS "isNullable",
   (CASE WHEN C.COLUMN_KEY = 'PRI' THEN 1 ELSE 0 END) AS "isPk",
-  (CASE WHEN KCU.REFERENCED_COLUMN_NAME IS NULL THEN 0 ELSE 1 END) AS "isFk"
+  0 AS "isFk"
 FROM
   INFORMATION_SCHEMA.COLUMNS AS C
   LEFT JOIN INFORMATION_SCHEMA.KEY_COLUMN_USAGE AS KCU ON (
@@ -172,7 +173,7 @@ FROM
   AND C.TABLE_SCHEMA = T.TABLE_SCHEMA
   AND (C.TABLE_CATALOG IS NULL OR C.TABLE_CATALOG = T.TABLE_CATALOG)
 WHERE
-  C.TABLE_SCHEMA NOT IN ('information_schema', 'performance_schema', 'sys', 'mysql')
+  C.TABLE_SCHEMA NOT IN ('information_schema', 'memsql', 'cluster')
   ${p => p.tables.filter(t => !!t.label).length
     ? `AND LOWER(C.TABLE_NAME) IN (${p.tables.filter(t => !!t.label).map(t => `'${t.label}'`.toLowerCase()).join(', ')})`
     : ''
@@ -190,84 +191,3 @@ ORDER BY
 LIMIT ${p => p.limit || 100}
 
 `;
-// export default {
-//   fetchFunctions: `
-// SELECT
-//   f.specific_name AS name,
-//   f.routine_schema AS dbschema,
-//   f.routine_schema AS dbname,
-//   concat(
-//     case
-//       WHEN f.routine_schema REGEXP '[^0-9a-zA-Z$_]' then concat('\`', f.routine_schema, '\`')
-//       ELSE f.routine_schema
-//     end,
-//     '.',
-//     case
-//       WHEN f.routine_name REGEXP '[^0-9a-zA-Z$_]' then concat('\`', f.routine_name, '\`')
-//       ELSE f.routine_name
-//     end
-//   ) as signature,
-//   GROUP_CONCAT(p.data_type) as args,
-//   f.data_type AS resultType,
-//   CONCAT(
-//     f.routine_schema,
-//     '${TREE_SEP}',
-//     'functions',
-//     '${TREE_SEP}',
-//     f.specific_name
-//   ) AS tree,
-//   f.routine_definition AS source
-// FROM
-//   information_schema.routines AS f
-//   LEFT JOIN information_schema.parameters AS p ON (
-//     f.specific_name = p.specific_name
-//     AND f.routine_schema = p.specific_schema
-//     AND f.routine_catalog = p.specific_catalog
-//   )
-// WHERE
-//   f.routine_schema NOT IN ('information_schema', 'performance_schema', 'mysql', 'sys')
-// GROUP BY
-//   f.specific_name,
-//   f.routine_schema,
-//   f.routine_name,
-//   f.data_type,
-//   f.routine_definition
-// ORDER BY
-//   f.specific_name;`,
-//   fetchFunctionsV55Older: `
-// SELECT
-//   f.specific_name AS name,
-//   f.routine_schema AS dbschema,
-//   f.routine_schema AS dbname,
-//   concat(
-//     case
-//       WHEN f.routine_schema REGEXP '[^0-9a-zA-Z$_]' then concat('\`', f.routine_schema, '\`')
-//       ELSE f.routine_schema
-//     end,
-//     '.',
-//     case
-//       WHEN f.routine_name REGEXP '[^0-9a-zA-Z$_]' then concat('\`', f.routine_name, '\`')
-//       ELSE f.routine_name
-//     end
-//   ) as signature,
-//   CONCAT(
-//     f.routine_schema,
-//     '${TREE_SEP}',
-//     'functions',
-//     '${TREE_SEP}',
-//     f.specific_name
-//   ) AS tree,
-//   f.routine_definition AS source
-// FROM
-//   information_schema.routines AS f
-// WHERE
-//   f.routine_schema NOT IN ('information_schema', 'performance_schema', 'mysql', 'sys')
-// GROUP BY
-//   f.specific_name,
-//   f.routine_schema,
-//   f.routine_name,
-//   f.routine_definition
-// ORDER BY
-//   f.specific_name;
-// `
-// } as IBaseQueries;
