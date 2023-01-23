@@ -60,7 +60,7 @@ OFFSET ${p => p.offset || 0};
 
 export const countRecords: IBaseQueries['countRecords'] = queryFactory`
 SELECT COUNT(1) AS total
-FROM ${p => escapeTableName(p.lalbel)}
+FROM ${p => escapeTableName(p.table)}
 `;
 
 export const fetchFunctions: IBaseQueries['fetchFunctions'] = queryFactory`
