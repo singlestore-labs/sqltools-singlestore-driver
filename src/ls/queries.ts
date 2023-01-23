@@ -5,7 +5,7 @@ function escapeTableName(table: Partial<NSDatabase.ITable> | string) {
   let items: string[] = [];
   let tableObj = typeof table === 'string' ? <NSDatabase.ITable>{ label: table } : table;
   // TODO: escape ` sign
-  tableObj.schema && items.push(`\`${tableObj.schema}\``);
+  //tableObj.schema && items.push(`\`${tableObj.schema}\``);
   items.push(`\`${tableObj.label}\``);
   return items.join('.');
 }
@@ -59,16 +59,16 @@ OFFSET ${p => p.offset || 0};
 `;
 
 export const countRecords: IBaseQueries['countRecords'] = queryFactory`
-SELECT count(1) AS total
-FROM ${p => escapeTableName(p.table)}
+SELECT COUNT(1) AS total
+FROM ${p => escapeTableName(p.lalbel)}
 `;
 
 export const fetchFunctions: IBaseQueries['fetchFunctions'] = queryFactory`
 SELECT
 SPECIFIC_NAME AS label,
-ROUTINE_TYPE AS "type",
+'${ContextValue.FUNCTION}' AS "type",
 ROUTINE_SCHEMA AS "schema",
-ROUTINE_SCHEMA AS "database"
+ROUTINE_SCHEMA AS "database",
 FROM INFORMATION_SCHEMA.ROUTINES AS R
 WHERE
   R.ROUTINE_SCHEMA = '${p => p.database}'
@@ -79,7 +79,7 @@ ORDER BY R.SPECIFIC_NAME
 export const fetchProcedures: IBaseQueries['fetchFunctions'] = queryFactory`
 SELECT
 SPECIFIC_NAME AS label,
-ROUTINE_TYPE AS "type",
+'${ContextValue.FUNCTION}' AS "type",
 ROUTINE_SCHEMA AS "schema",
 ROUTINE_SCHEMA AS "database"
 FROM INFORMATION_SCHEMA.ROUTINES AS R
