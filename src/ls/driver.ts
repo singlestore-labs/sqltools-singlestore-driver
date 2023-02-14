@@ -56,17 +56,36 @@ export default class SingleStoreDB<O = any> extends AbstractDriver<any, O> imple
     });
   }
 
+  writeLog(s: String) {
+    const fs = require('fs')
+    fs.appendFile('/home/amakarovych-ua/Test/log', s + '\n', (err) => {
+      // In case of a error throw err.
+      if (err) throw err;
+    })
+  }
+
+  clearLog() {
+    const fs = require('fs')
+    fs.writeFile('/home/amakarovych-ua/Test/log', '', (err) => {
+      // In case of a error throw err.
+      if (err) throw err;
+    })
+  }
+
+
   public query: (typeof AbstractDriver)['prototype']['query'] = (query, opt = {}) => {
-    
+    this.writeLog('START')
     return this.open().then((conn): Promise<NSDatabase.IResult[]> => {
       const { requestId } = opt;
       return new Promise((resolve, reject) => {
-        console.log(query.toString())
+        this.writeLog(query.toString())
         const queries = parse(query.toString());
+        this.writeLog(queries.length.toString())
         return resolve(queries.map((query): NSDatabase.IResult => {
           return conn.query({ sql: query.toString(), nestTables: true }, (error, result, fields) => {
             if (error) return reject(error);            
             try {
+              result = result || []
               const messages = [];
               if (result.affectedRows) {
                 messages.push(`${result.affectedRows} rows were affected.`);
@@ -78,7 +97,8 @@ export default class SingleStoreDB<O = any> extends AbstractDriver<any, O> imple
                 // TODO: understand, why this is needed
                 fields = fields.filter(field => typeof field !== 'undefined');
               }
-              return {
+              this.writeLog('AA')
+              const res = {
                 connId: this.getId(),
                 requestId,
                 resultId: generateId(),
@@ -87,6 +107,12 @@ export default class SingleStoreDB<O = any> extends AbstractDriver<any, O> imple
                 query: query,
                 results: Array.isArray(result) ? this.mapRows(result, fields) : [],
               };
+              this.writeLog('BB')
+              this.writeLog(res.cols.toString())
+              res.results.map(res => {
+                this.writeLog(JSON.stringify(res))
+              })
+              return res
             } catch (err) {
               return reject(err);
             }
@@ -131,10 +157,15 @@ export default class SingleStoreDB<O = any> extends AbstractDriver<any, O> imple
   }
 
   public async getChildrenForItem({ item, parent }: Arg0<IConnectionDriver['getChildrenForItem']>) {
+    this.writeLog('GET GROUP ' + item.type.toString())
     switch (item.type) {
       case ContextValue.CONNECTION:
       case ContextValue.CONNECTED_CONNECTION:
-        return this.queryResults(this.queries.fetchDatabases(item));
+        this.writeLog('FETCHING')
+        const res = this.queryResults(this.queries.fetchDatabases(item))
+        this.writeLog(JSON.stringify(await res))
+        this.writeLog('BBBB')
+        return res;
       case ContextValue.DATABASE:
         return <MConnectionExplorer.IChildItem[]>[
           { label: 'Tables', type: ContextValue.RESOURCE_GROUP, iconId: 'folder', childType: ContextValue.TABLE },
@@ -152,6 +183,7 @@ export default class SingleStoreDB<O = any> extends AbstractDriver<any, O> imple
   }
 
   private async getChildrenForGroup({ parent, item }: Arg0<IConnectionDriver['getChildrenForItem']>) {
+    this.writeLog('GET ITEM')
     switch (item.childType) {
       case ContextValue.TABLE:
         return this.queryResults(this.queries.fetchTables(parent as NSDatabase.ISchema)).then(res => res.map(t => ({ ...t, isView: toBool(t.isView) })));
