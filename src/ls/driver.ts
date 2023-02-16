@@ -2,11 +2,10 @@ import AbstractDriver from '@sqltools/base-driver';
 import * as Queries from './queries';
 import MySQLLib from 'mysql';
 import { countBy } from 'lodash';
-// import compareVersions from 'compare-versions';
 import { IConnectionDriver, NSDatabase, Arg0, MConnectionExplorer, ContextValue } from '@sqltools/types';
-//import generateId from '@sqltools/util/internal-id';
 import keywordsCompletion from './keywords';
 import { v4 as generateId } from 'uuid';
+import parse from './parse';
 
 const toBool = (v: any) => v && (v.toString() === '1' || v.toString().toLowerCase() === 'true' || v.toString().toLowerCase() === 'yes');
 
@@ -60,45 +59,36 @@ export default class SingleStoreDB<O = any> extends AbstractDriver<any, O> imple
   public query: (typeof AbstractDriver)['prototype']['query'] = (query, opt = {}) => {
     return this.open().then((conn): Promise<NSDatabase.IResult[]> => {
       const { requestId } = opt;
-      return new Promise((resolve, reject) => {
-        conn.query({ sql: query.toString(), nestTables: true }, (error, results, fields) => {
-          if (error) return reject(error);
-          try {
-            // TODO: write query splitter
-            // const queries = queryParse(query.toString());
-            const queries = query.toString().split(';');
-            // TODO: understand, why this is needed
-            if (results && !Array.isArray(results[0]) && typeof results[0] !== 'undefined') {
-              results = [results];
+      const queries = parse(query.toString());
+      return Promise.all(queries.map((query):Promise<NSDatabase.IResult> => {
+        return new Promise((resolve, reject) => {
+          conn.query({ sql: query.toString(), nestTables: true }, (error, results, fields) => {
+            if (error) reject(error);
+            const r = results || [];
+            const messages = [];
+            if (r.affectedRows) {
+              messages.push(`${r.affectedRows} rows were affected.`);
             }
-            return resolve(queries.map((q, i): NSDatabase.IResult => {
-              const r = results[i] || [];
-              const messages = [];
-              if (r.affectedRows) {
-                messages.push(`${r.affectedRows} rows were affected.`);
-              }
-              if (r.changedRows) {
-                messages.push(`${r.changedRows} rows were changed.`);
-              }
-              if (fields) {
-                // TODO: understand, why this is needed
-                fields = fields.filter(field => typeof field !== 'undefined');
-              }
-              return {
-                connId: this.getId(),
-                requestId,
-                resultId: generateId(), // TODO: understand, why this is needed
-                cols: fields && Array.isArray(fields) ? this.getColumnNames(fields) : [],
-                messages,
-                query: q,
-                results: Array.isArray(r) ? this.mapRows(r, fields) : [],
-              };
-            }));
-          } catch (err) {
-            return reject(err);
-          }
-        });
-      });
+            if (r.changedRows) {
+              messages.push(`${r.changedRows} rows were changed.`);
+            }
+            if (fields) {
+              // TODO: understand, why this is needed
+              fields = fields.filter(field => typeof field !== 'undefined');
+            }
+            const res: NSDatabase.IResult = {
+              connId: this.getId(),
+              requestId,
+              resultId: generateId(), // TODO: understand, why this is needed
+              cols: fields && Array.isArray(fields) ? this.getColumnNames(fields) : [],
+              messages,
+              query: query,
+              results: Array.isArray(r) ? this.mapRows(r, fields) : [],
+            }
+            resolve(res)
+          });
+        })
+      }))
     }).catch(err => {
       if (opt.throwIfError) {
         throw new Error(err.message);
@@ -140,7 +130,7 @@ export default class SingleStoreDB<O = any> extends AbstractDriver<any, O> imple
     switch (item.type) {
       case ContextValue.CONNECTION:
       case ContextValue.CONNECTED_CONNECTION:
-        return this.queryResults(this.queries.fetchDatabases(item));
+        return this.queryResults(this.queries.fetchDatabases(item))
       case ContextValue.DATABASE:
         return <MConnectionExplorer.IChildItem[]>[
           { label: 'Tables', type: ContextValue.RESOURCE_GROUP, iconId: 'folder', childType: ContextValue.TABLE },
