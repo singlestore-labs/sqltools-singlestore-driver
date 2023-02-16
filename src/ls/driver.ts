@@ -56,23 +56,6 @@ export default class SingleStoreDB<O = any> extends AbstractDriver<any, O> imple
     });
   }
 
-  writeLog(s: String) {
-    const fs = require('fs')
-    fs.appendFile('/home/amakarovych-ua/Test/log', s + '\n', (err) => {
-      // In case of a error throw err.
-      if (err) throw err;
-    })
-  }
-
-  clearLog() {
-    const fs = require('fs')
-    fs.writeFile('/home/amakarovych-ua/Test/log', '', (err) => {
-      // In case of a error throw err.
-      if (err) throw err;
-    })
-  }
-
-
   public query: (typeof AbstractDriver)['prototype']['query'] = (query, opt = {}) => {
     return this.open().then((conn): Promise<NSDatabase.IResult[]> => {
       const { requestId } = opt;
@@ -93,7 +76,6 @@ export default class SingleStoreDB<O = any> extends AbstractDriver<any, O> imple
               // TODO: understand, why this is needed
               fields = fields.filter(field => typeof field !== 'undefined');
             }
-            this.writeLog('BBBBB')
             const res: NSDatabase.IResult = {
               connId: this.getId(),
               requestId,
@@ -145,15 +127,10 @@ export default class SingleStoreDB<O = any> extends AbstractDriver<any, O> imple
   }
 
   public async getChildrenForItem({ item, parent }: Arg0<IConnectionDriver['getChildrenForItem']>) {
-    this.writeLog('GET GROUP ' + item.type.toString())
     switch (item.type) {
       case ContextValue.CONNECTION:
       case ContextValue.CONNECTED_CONNECTION:
-        this.writeLog('FETCHING')
-        const res = this.queryResults(this.queries.fetchDatabases(item))
-        this.writeLog(JSON.stringify(await res))
-        this.writeLog('BBBB')
-        return res;
+        return this.queryResults(this.queries.fetchDatabases(item))
       case ContextValue.DATABASE:
         return <MConnectionExplorer.IChildItem[]>[
           { label: 'Tables', type: ContextValue.RESOURCE_GROUP, iconId: 'folder', childType: ContextValue.TABLE },
@@ -171,7 +148,6 @@ export default class SingleStoreDB<O = any> extends AbstractDriver<any, O> imple
   }
 
   private async getChildrenForGroup({ parent, item }: Arg0<IConnectionDriver['getChildrenForItem']>) {
-    this.writeLog('GET ITEM')
     switch (item.childType) {
       case ContextValue.TABLE:
         return this.queryResults(this.queries.fetchTables(parent as NSDatabase.ISchema)).then(res => res.map(t => ({ ...t, isView: toBool(t.isView) })));
