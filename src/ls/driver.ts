@@ -74,51 +74,39 @@ export default class SingleStoreDB<O = any> extends AbstractDriver<any, O> imple
 
 
   public query: (typeof AbstractDriver)['prototype']['query'] = (query, opt = {}) => {
-    this.writeLog('START')
     return this.open().then((conn): Promise<NSDatabase.IResult[]> => {
       const { requestId } = opt;
-      return new Promise((resolve, reject) => {
-        this.writeLog(query.toString())
-        const queries = parse(query.toString());
-        this.writeLog(queries.length.toString())
-        return resolve(queries.map((query): NSDatabase.IResult => {
-          return conn.query({ sql: query.toString(), nestTables: true }, (error, result, fields) => {
-            if (error) return reject(error);            
-            try {
-              result = result || []
-              const messages = [];
-              if (result.affectedRows) {
-                messages.push(`${result.affectedRows} rows were affected.`);
-              }
-              if (result.changedRows) {
-                messages.push(`${result.changedRows} rows were changed.`);
-              }
-              if (fields) {
-                // TODO: understand, why this is needed
-                fields = fields.filter(field => typeof field !== 'undefined');
-              }
-              this.writeLog('AA')
-              const res = {
-                connId: this.getId(),
-                requestId,
-                resultId: generateId(),
-                cols: fields && Array.isArray(fields) ? this.getColumnNames(fields) : [],
-                messages,
-                query: query,
-                results: Array.isArray(result) ? this.mapRows(result, fields) : [],
-              };
-              this.writeLog('BB')
-              this.writeLog(res.cols.toString())
-              res.results.map(res => {
-                this.writeLog(JSON.stringify(res))
-              })
-              return res
-            } catch (err) {
-              return reject(err);
+      const queries = parse(query.toString());
+      return Promise.all(queries.map((query):Promise<NSDatabase.IResult> => {
+        return new Promise((resolve, reject) => {
+          conn.query({ sql: query.toString(), nestTables: true }, (error, results, fields) => {
+            if (error) reject(error);
+            const r = results || [];
+            const messages = [];
+            if (r.affectedRows) {
+              messages.push(`${r.affectedRows} rows were affected.`);
             }
-          })
-        }))
-      });
+            if (r.changedRows) {
+              messages.push(`${r.changedRows} rows were changed.`);
+            }
+            if (fields) {
+              // TODO: understand, why this is needed
+              fields = fields.filter(field => typeof field !== 'undefined');
+            }
+            this.writeLog('BBBBB')
+            const res: NSDatabase.IResult = {
+              connId: this.getId(),
+              requestId,
+              resultId: generateId(), // TODO: understand, why this is needed
+              cols: fields && Array.isArray(fields) ? this.getColumnNames(fields) : [],
+              messages,
+              query: query,
+              results: Array.isArray(r) ? this.mapRows(r, fields) : [],
+            }
+            resolve(res)
+          });
+        })
+      }))
     }).catch(err => {
       if (opt.throwIfError) {
         throw new Error(err.message);
