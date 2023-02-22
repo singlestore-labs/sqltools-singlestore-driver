@@ -1,7 +1,7 @@
 {
   "name": "sqltools-singlestore-driver",
-  "displayName": "SQLTools SingleStore Driver",
-  "description": "SQLTools Driver for SingleStore",
+  "displayName": "SQLTools SingleStoreDB Driver",
+  "description": "SQLTools Driver for SingleStoreDB",
   "version": "0.0.1",
   "engines": {
     "vscode": "^1.42.0"
