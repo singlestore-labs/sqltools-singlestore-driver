@@ -30,8 +30,15 @@
       "minimum": 1,
       "default": 5506,
       "type": "integer"
+    },
+    "maxRows": {
+      "title": "Max rows to show",
+      "minimum": 0,
+      "default": 50,
+      "type":"integer"
     }
   },
+
   "properties": {
     "server": {
       "$ref": "#/definitions/server"
@@ -47,6 +54,9 @@
     },
     "password": {
       "$ref": "#/definitions/password"
+    },
+    "maxRows": {
+      "$ref": "#/definitions/maxRows"
     }
   },
   "required": [

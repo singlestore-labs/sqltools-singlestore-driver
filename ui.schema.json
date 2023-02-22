@@ -4,7 +4,8 @@
     "port",
     "database",
     "username",
-    "password"
+    "password",
+    "maxRows"
   ],
   "password": {
     "ui:widget": "password"
