@@ -92,7 +92,7 @@ describe('query parse', () => {
         
         SELECT * FROM courses;
         SELECT * FROM courses;
-        `)).toEqual([
+        DELIMITER ;`)).toEqual([
             `CREATE TABLE courses(course_code TEXT, section_number INT, number_students INT)`,
             `
         

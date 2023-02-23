@@ -158,7 +158,9 @@ class QueryParser {
     let parsedQueryAfterIndex = query.substring(index);
     if (parsedQueryAfterIndex.toLowerCase().startsWith(delimiterKeyword)) {
       parsedQueryAfterIndex = parsedQueryAfterIndex.substring(delimiterLength)
-      let delimiterSymbol = parsedQueryAfterIndex.substring(0, parsedQueryAfterIndex.search("\\s"));
+      const whiteSpaceIndex = parsedQueryAfterIndex.search("\\s")
+      let delimiterSymbol = whiteSpaceIndex == -1 ? parsedQueryAfterIndex :
+        parsedQueryAfterIndex.substring(0, parsedQueryAfterIndex.search("\\s"));
       const delimiterSymbolEndIndex = index + delimiterLength + delimiterSymbol.length
       delimiterSymbol = delimiterSymbol.trim();
       if (delimiterSymbol != '') {
