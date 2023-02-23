@@ -2,7 +2,7 @@ import AbstractDriver from '@sqltools/base-driver';
 import * as Queries from './queries';
 import MySQLLib from 'mysql';
 import { countBy } from 'lodash';
-import { IConnectionDriver, NSDatabase, Arg0, MConnectionExplorer, ContextValue } from '@sqltools/types';
+import { IConnectionDriver, NSDatabase, Arg0, MConnectionExplorer, ContextValue, IQueryOptions } from '@sqltools/types';
 import keywordsCompletion from './keywords';
 import { v4 as generateId } from 'uuid';
 import parse from './parse';
@@ -60,9 +60,13 @@ export default class SingleStoreDB<O = any> extends AbstractDriver<any, O> imple
     return this.open().then((conn): Promise<NSDatabase.IResult[]> => {
       const { requestId } = opt;
       const queries = parse(query.toString());
-      return Promise.all(queries.map((query):Promise<NSDatabase.IResult> => {
+      return Promise.all(queries.map((query): Promise<NSDatabase.IResult> => {
         return new Promise((resolve, reject) => {
-          conn.query({ sql: query.toString(), nestTables: true }, (error, results, fields) => {
+          let limitedQuery = query.toString().trim().toLowerCase().startsWith('select') ?
+            "SELECT * FROM (" + query.toString() + ") LIMIT " + this.credentials.maxRows :
+            query.toString();
+
+          conn.query({ sql: limitedQuery, nestTables: true }, (error, results, fields) => {
             if (error) reject(error);
             const r = results || [];
             const messages = [];
@@ -84,6 +88,7 @@ export default class SingleStoreDB<O = any> extends AbstractDriver<any, O> imple
               messages,
               query: query,
               results: Array.isArray(r) ? this.mapRows(r, fields) : [],
+              pageSize: Array.isArray(r) ? r.length : 0,
             }
             resolve(res)
           });
@@ -109,6 +114,21 @@ export default class SingleStoreDB<O = any> extends AbstractDriver<any, O> imple
         results: [],
       }];
     });
+  }
+
+  public async showRecords(table: NSDatabase.ITable, opt: IQueryOptions & { limit: number, page?: number }) {
+    const params = { limit: this.credentials.maxRows, table, offset: 0 };
+    const [records, totalResult] = await (Promise.all([
+      this.singleQuery(this.queries.fetchRecords(params), opt),
+      this.singleQuery(this.queries.countRecords(params), opt),
+    ]));
+    records.baseQuery = this.queries.fetchRecords.raw;
+    records.pageSize = Number((totalResult.results[0] as any).total);
+    records.page = 0;
+    records.total = Number((totalResult.results[0] as any).total);
+    records.queryType = 'showRecords';
+    records.queryParams = table;
+    return [records];
   }
 
   private getColumnNames(fields: MySQLLib.FieldInfo[] = []): string[] {
@@ -158,7 +178,7 @@ export default class SingleStoreDB<O = any> extends AbstractDriver<any, O> imple
           return this.queryResults(this.queries.fetchFunctions(parent as NSDatabase.ISchema));
         }
         return this.queryResults(this.queries.fetchProcedures(parent as NSDatabase.ISchema));
-      
+
     }
     return [];
   }

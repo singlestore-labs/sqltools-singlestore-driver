@@ -54,8 +54,7 @@ ORDER BY
 export const fetchRecords: IBaseQueries['fetchRecords'] = queryFactory`
 SELECT *
 FROM ${p => escapeTableName(p.table)}
-LIMIT ${p => p.limit || 50}
-OFFSET ${p => p.offset || 0};
+LIMIT ${p => p.limit || 50};
 `;
 
 export const countRecords: IBaseQueries['countRecords'] = queryFactory`
