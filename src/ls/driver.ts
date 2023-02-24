@@ -63,7 +63,7 @@ export default class SingleStoreDB<O = any> extends AbstractDriver<any, O> imple
       return Promise.all(queries.map((query): Promise<NSDatabase.IResult> => {
         return new Promise((resolve, reject) => {
           let limitedQuery = query.toString().trim().toLowerCase().startsWith('select') ?
-            "SELECT * FROM (" + query.toString() + ") LIMIT " + this.credentials.maxRows :
+            "SELECT * FROM (" + query.toString() + ") LIMIT " + this.credentials.previewLimit :
             query.toString();
 
           conn.query({ sql: limitedQuery, nestTables: true }, (error, results, fields) => {
@@ -117,7 +117,7 @@ export default class SingleStoreDB<O = any> extends AbstractDriver<any, O> imple
   }
 
   public async showRecords(table: NSDatabase.ITable, opt: IQueryOptions & { limit: number, page?: number }) {
-    const params = { limit: this.credentials.maxRows, table, offset: 0 };
+    const params = { limit: this.credentials.previewLimit, table, offset: 0 };
     const [records, totalResult] = await (Promise.all([
       this.singleQuery(this.queries.fetchRecords(params), opt),
       this.singleQuery(this.queries.countRecords(params), opt),

@@ -4,9 +4,8 @@ import { IBaseQueries, ContextValue, NSDatabase } from '@sqltools/types';
 function escapeTableName(table: Partial<NSDatabase.ITable> | string) {
   let items: string[] = [];
   let tableObj = typeof table === 'string' ? <NSDatabase.ITable>{ label: table } : table;
-  // TODO: escape ` sign
   //tableObj.schema && items.push(`\`${tableObj.schema}\``);
-  items.push(`\`${tableObj.label}\``);
+  items.push(`\`${tableObj.label.replace('`', '``')}\``);
   return items.join('.');
 }
 
@@ -50,7 +49,6 @@ ORDER BY
   C.ORDINAL_POSITION
 `;
 
-// TODO allow fetching only first page
 export const fetchRecords: IBaseQueries['fetchRecords'] = queryFactory`
 SELECT *
 FROM ${p => escapeTableName(p.table)}
