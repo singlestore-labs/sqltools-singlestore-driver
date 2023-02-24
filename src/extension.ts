@@ -30,6 +30,27 @@ export async function activate(extContext: vscode.ExtensionContext): Promise<IDr
         extension.resourcesMap().set(`driver/${value}/ui-schema`, extContext.asAbsolutePath('ui.schema.json'));
       });
       await extension.client.sendRequest('ls/RegisterPlugin', { path: extContext.asAbsolutePath('out/ls/plugin.js') });
+
+      const escapeCreateQuery = (query) => {
+        return 'DELIMITER //\n' + query + '//\nDELIMITER ;\n'
+      }
+
+      const showCreate = async (param, type) => {
+        const res = await extension.client.sendRequest('connection/RunCommandRequest', 
+        {conn: param.conn, command: 'query', args: ['SHOW CREATE ' + type + ' ' + param.label]})
+        const query = escapeCreateQuery(res[0].results[0]['Create ' + type])
+
+        await vscode.workspace.openTextDocument({language: 'sql', content: query})
+        .then(doc => vscode.window.showTextDocument(doc))
+      }
+
+      api.registerCommand('singleStoreShowFunction', async (param) => {
+        await showCreate(param, "Function")
+      })
+
+      api.registerCommand('singleStoreShowProcedure', async (param) => {
+        await showCreate(param, "Procedure")
+      })
     }
   }
   api.registerPlugin(plugin);

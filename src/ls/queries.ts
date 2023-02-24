@@ -67,7 +67,8 @@ SELECT
 SPECIFIC_NAME AS label,
 '${ContextValue.FUNCTION}' AS "type",
 ROUTINE_SCHEMA AS "schema",
-ROUTINE_SCHEMA AS "database"
+ROUTINE_SCHEMA AS "database",
+"NO_CHILD" as "childType"
 FROM INFORMATION_SCHEMA.ROUTINES AS R
 WHERE
   R.ROUTINE_SCHEMA = '${p => p.database}'
@@ -78,9 +79,11 @@ ORDER BY R.SPECIFIC_NAME
 export const fetchProcedures: IBaseQueries['fetchFunctions'] = queryFactory`
 SELECT
 SPECIFIC_NAME AS label,
-'${ContextValue.FUNCTION}' AS "type",
+"connection.procedure" AS "type",
+"bracket" AS "iconId",
 ROUTINE_SCHEMA AS "schema",
-ROUTINE_SCHEMA AS "database"
+ROUTINE_SCHEMA AS "database",
+"NO_CHILD" as "childType"
 FROM INFORMATION_SCHEMA.ROUTINES AS R
 WHERE
   R.ROUTINE_SCHEMA = '${p => p.database}'
