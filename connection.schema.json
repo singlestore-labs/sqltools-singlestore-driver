@@ -5,37 +5,28 @@
     "database": {
       "title": "Database",
       "type": "string",
-      "minLength": 1,
-      "default": "testdb"
+      "default": ""
     },
     "username": {
       "title": "Username",
       "type": "string",
-      "minLength": 1,
       "default": "root"
     },
     "password": {
       "title": "Password",
       "type": "string",
-      "default": "1"
+      "default": ""
     },
     "server": {
       "title": "Server Address",
       "type": "string",
-      "minLength": 1,
-      "default": "localhost"
+      "default": ""
     },
     "port": {
       "title": "Port",
       "minimum": 1,
-      "default": 5506,
+      "default": 3306,
       "type": "integer"
-    },
-    "maxRows": {
-      "title": "Max rows to show",
-      "minimum": 0,
-      "default": 50,
-      "type":"integer"
     }
   },
 
@@ -54,9 +45,6 @@
     },
     "password": {
       "$ref": "#/definitions/password"
-    },
-    "maxRows": {
-      "$ref": "#/definitions/maxRows"
     }
   },
   "required": [
