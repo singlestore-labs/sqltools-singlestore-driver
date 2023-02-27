@@ -42,6 +42,52 @@
     "onLanguage:sql",
     "onCommand:sqltools.*"
   ],
+  "contributes": {
+    "commands": [
+      {
+        "title": "Show Function",
+        "command": "sqltools.singleStoreShowFunction",
+        "category": "SQLTools Connection",
+        "icon": {
+          "light": "icons/show-light.svg",
+          "dark": "icons/show-dark.svg"
+        }
+      },
+      {
+        "title": "Show Procedure",
+        "command": "sqltools.singleStoreShowProcedure",
+        "category": "SQLTools Connection",
+        "icon": {
+          "light": "icons/show-light.svg",
+          "dark": "icons/show-dark.svg"
+        }
+      }
+    ],
+    "menus": {
+      "view/item/context": [
+        {
+          "command": "sqltools.singleStoreShowFunction",
+          "when": "view == sqltoolsViewConnectionExplorer && viewItem =~ /^connection\\.(function)$/",
+          "group": "inline@0"
+        },
+        {
+          "command": "sqltools.singleStoreShowFunction",
+          "when": "view == sqltoolsViewConnectionExplorer && viewItem =~ /^connection\\.(function)$/",
+          "group": "navigation@0"
+        },
+        {
+          "command": "sqltools.singleStoreShowProcedure",
+          "when": "view == sqltoolsViewConnectionExplorer && viewItem =~ /^connection\\.(procedure)$/",
+          "group": "inline@0"
+        },
+        {
+          "command": "sqltools.singleStoreShowProcedure",
+          "when": "view == sqltoolsViewConnectionExplorer && viewItem =~ /^connection\\.(procedure)$/",
+          "group": "navigation@0"
+        }
+      ]
+    }
+  },
   "main": "./out/extension.js",
   "dependencies": {
     "@sqltools/base-driver": "^0.1.11",
