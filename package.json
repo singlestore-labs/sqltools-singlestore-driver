@@ -10,9 +10,9 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/memsql/sqltools-singlestore-driver"
+    "url": "https://github.com/singlestore-labs/sqltools-singlestore-driver"
   },
-  "bugs": "https://github.com/memsql/sqltools-singlestore-driver/issues",
+  "bugs": "https://github.com/singlestore-labs/sqltools-singlestore-driver/issues",
   "scripts": {
     "vscode:prepublish": "npm run compile",
     "compile": "tsc -p ./",
@@ -27,7 +27,7 @@
     "memsql",
     "sql"
   ],
-  "homepage": "https://github.com/memsql/sqltools-singlestore-driver#readme",
+  "homepage": "https://github.com/singlestore-labs/sqltools-singlestore-driver#readme",
   "categories": [
     "Programming Languages",
     "Snippets",
