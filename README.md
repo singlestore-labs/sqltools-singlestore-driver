@@ -11,6 +11,7 @@ A Visual Studio Code extension which extends the [SQTools extension](https://mar
  - `View` tables, views, columns, functions, procedures
  - `Generate` `INSERT` queries
  - `Autocomplete` SQL keywords, table and view names, column names, SingleStore built-in 
+
  functions
  - `Run` SQL queries
  - `Export` SQL query results in CSV and JSON data formats
@@ -28,7 +29,7 @@ Here you can see several examples of driver usage.
 For more information on how to use SQLTools please refer to [SQLTools documentation](https://vscode-sqltools.mteixeira.dev/en/home/)
 
 ### Create a connection
-![](icons/tutu.webm)
+[tutu.webm](https://user-images.githubusercontent.com/55380838/221782260-646c93d6-fbbe-4ae3-ad03-1130bc092e3f.webm)
 > Note: `Show records default limit` parameter defines the maximum number of rows that will be shown in the result. 
 ### View tables and views
 ![](icons/view-tables.GIF)
