@@ -2,7 +2,7 @@
   "name": "sqltools-singlestore-driver",
   "displayName": "SQLTools SingleStoreDB Driver",
   "description": "SQLTools Driver for SingleStoreDB",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "engines": {
     "vscode": "^1.42.0"
   },
@@ -14,8 +14,10 @@
   },
   "bugs": "https://github.com/singlestore-labs/sqltools-singlestore-driver/issues",
   "scripts": {
-    "vscode:prepublish": "npm run compile",
-    "compile": "tsc -p ./",
+    "clean": "rimraf out *.vsix",
+    "vscode:prepublish": "npm run clean && npm run esbuild-base:ext && npm run esbuild-base:ls",
+    "esbuild-base:ext": "esbuild ./src/extension.ts --bundle --outfile=out/extension.js --external:vscode --format=cjs --platform=node",
+    "esbuild-base:ls": "esbuild ./src/ls/plugin.ts --bundle --outfile=out/ls/plugin.js --external:vscode --format=cjs --platform=node",
     "watch": "tsc -watch -p ./",
     "test": "jest"
   },
@@ -38,7 +40,7 @@
     "mtxr.sqltools"
   ],
   "activationEvents": [
-    "*",
+    "onStartupFinished",
     "onLanguage:sql",
     "onCommand:sqltools.*"
   ],
@@ -49,8 +51,8 @@
         "command": "sqltools.singleStoreShowFunction",
         "category": "SQLTools Connection",
         "icon": {
-          "light": "icons/show-light.svg",
-          "dark": "icons/show-dark.svg"
+          "light": "icons/show-light.png",
+          "dark": "icons/show-dark.png"
         }
       },
       {
@@ -58,8 +60,8 @@
         "command": "sqltools.singleStoreShowProcedure",
         "category": "SQLTools Connection",
         "icon": {
-          "light": "icons/show-light.svg",
-          "dark": "icons/show-dark.svg"
+          "light": "icons/show-light.png",
+          "dark": "icons/show-dark.png"
         }
       }
     ],
@@ -99,7 +101,8 @@
   "devDependencies": {
     "@types/jest": "^29.4.0",
     "@types/node": "^18.4.0",
-    "@types/vscode": "^1.75.1",
+    "@types/vscode": "^1.42.0",
+    "esbuild": "^0.17.10",
     "jest": "^29.4.3",
     "ts-jest": "^29.0.5",
     "typescript": "^4.9.5"
