@@ -29,14 +29,17 @@ Here you can see several examples of driver usage.
 For more information on how to use SQLTools please refer to [SQLTools documentation](https://vscode-sqltools.mteixeira.dev/en/home/)
 
 ### Create a connection
-[tutu.webm](https://user-images.githubusercontent.com/55380838/221782260-646c93d6-fbbe-4ae3-ad03-1130bc092e3f.webm)
+https://user-images.githubusercontent.com/55380838/221791339-c18f8539-8f01-45db-9c7d-94019923e869.mp4
 > Note: `Show records default limit` parameter defines the maximum number of rows that will be shown in the result. 
+
 ### View tables and views
-![](icons/view-tables.GIF)
+https://user-images.githubusercontent.com/55380838/221792568-a1345ca9-d44d-4e36-85a1-4311cc99327d.mp4
+
 ### Run SQL query
-![](icons/run-query.GIF)
+https://user-images.githubusercontent.com/55380838/221792831-3f30c99b-ce27-4e0a-bb6e-6810718f6b10.mp4
+
 ### View and edit functions and procedures
-![](icons/view-functions.GIF)
+https://user-images.githubusercontent.com/55380838/221793272-31b14ad2-f9a1-49a8-8bff-cd7700eeae88.mp4
 > Note: When creating a function or a procedure, you must change the delimiter to ensure that the function or procedure definition is correctly passed to the server as a single statement. The default delimiter is a semicolon (;). A problem arises when creating functions or procedures because they use semicolons as statement delimiters within the function body. Therefore, you must change the delimiter setting before creating your function or procedure, and then set it back to a semicolon after the alternate delimiter is no longer needed.
 > The DELIMITER commands must be on independent lines. 
 
