@@ -4,7 +4,7 @@ import { IBaseQueries, ContextValue, NSDatabase } from '@sqltools/types';
 function escapeTableName(table: Partial<NSDatabase.ITable> | string) {
   let items: string[] = [];
   let tableObj = typeof table === 'string' ? <NSDatabase.ITable>{ label: table } : table;
-  //tableObj.schema && items.push(`\`${tableObj.schema}\``);
+  tableObj.schema && items.push(`\`${tableObj.schema.replace('`', '``')}\``);
   items.push(`\`${tableObj.label.replace('`', '``')}\``);
   return items.join('.');
 }
