@@ -3,7 +3,7 @@
 # SingleStore Driver for SQLTools
 ![logo](icons/singlestore_logo_horizontal_color_on-white_rgb.png)
 
-A Visual Studio Code extension which extends the [SQLTools extension](https://marketplace.visualstudio.com/items?itemName=mtxr.sqltools) to work with the SingleStore.
+A Visual Studio Code extension which extends the [SQLTools extension](https://marketplace.visualstudio.com/items?itemName=mtxr.sqltools) to work with SingleStore.
 
 ## Features
  - **Connect** to a SingleStoreDB instance
