@@ -27,17 +27,17 @@ The following examples perform different tasks using the driver.
 Refer to [SQLTools documentation](https://vscode-sqltools.mteixeira.dev/en/home/) for more information.
 
 ### Create a Connection
-https://user-images.githubusercontent.com/55380838/221791339-c18f8539-8f01-45db-9c7d-94019923e869.mp4
+![221791339-c18f8539-8f01-45db-9c7d-94019923e869](https://user-images.githubusercontent.com/55380838/224738915-98804802-e243-4809-8be4-f4d5bf8e9f4a.gif)
 > Note: The `Show records default limit` parameter specifies the maximum number of rows that are shown in the result.
 
 ### View tables and views
-https://user-images.githubusercontent.com/55380838/221792568-a1345ca9-d44d-4e36-85a1-4311cc99327d.mp4
+![221792568-a1345ca9-d44d-4e36-85a1-4311cc99327d](https://user-images.githubusercontent.com/55380838/224739004-703a46cd-c956-4fb5-a57a-6130175328ec.gif)
 
 ### Run a SQL query
-https://user-images.githubusercontent.com/55380838/221792831-3f30c99b-ce27-4e0a-bb6e-6810718f6b10.mp4
+![221792831-3f30c99b-ce27-4e0a-bb6e-6810718f6b10](https://user-images.githubusercontent.com/55380838/224739087-14d84ad1-989d-4693-9ee1-091614a73486.gif)
 
 ### View and Edit Functions and Procedures
-https://user-images.githubusercontent.com/55380838/221793272-31b14ad2-f9a1-49a8-8bff-cd7700eeae88.mp4
+![221793272-31b14ad2-f9a1-49a8-8bff-cd7700eeae88](https://user-images.githubusercontent.com/55380838/224739177-34fb1a6d-10c8-4bfa-b6c9-3cff59b81fdf.gif)
 > Note: When creating a function or a procedure, you must change the delimiter to ensure that the function or procedure definition is correctly passed to the server as a single statement. The default delimiter is a semicolon (;). A problem arises when creating functions or procedures because they use semicolons as statement delimiters within the function body. Therefore, you must change the delimiter setting before creating your function or procedure, and then set it back to a semicolon after the alternate delimiter is no longer needed. Therefore, you must change the delimiter to something else (for example `//`) before creating your function or procedure, and then revert it to a semicolon (`;`) afterwards.
 > The `DELIMITER` commands must be on independent lines. 
 
