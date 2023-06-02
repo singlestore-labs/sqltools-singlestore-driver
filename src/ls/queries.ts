@@ -89,7 +89,7 @@ WHERE
 ORDER BY R.SPECIFIC_NAME 
 ;`;
 
-const fetchTablesAndViews = (type: ContextValue, tableType = 'BASE TABLE'): IBaseQueries['fetchTables'] => queryFactory`
+const fetchTablesAndViews = (type: ContextValue): IBaseQueries['fetchTables'] => queryFactory`
 SELECT
   T.TABLE_NAME AS label,
   '${type}' as type,
@@ -102,13 +102,13 @@ FROM
 WHERE
   T.TABLE_SCHEMA = '${p => p.database}'
   ${p => p.catalog ? `AND T.TABLE_CATALOG = '${p.catalog}'` : ''}
-  AND UPPER(T.TABLE_TYPE) = '${tableType.toUpperCase()}'
+  AND UPPER(T.TABLE_TYPE) IN ${type === ContextValue.VIEW ? '("VIEW", "SYSTEM VIEW")' : '("BASE TABLE")'}
 ORDER BY
   T.TABLE_NAME
 `;
 
 export const fetchTables: IBaseQueries['fetchTables'] = fetchTablesAndViews(ContextValue.TABLE);
-export const fetchViews: IBaseQueries['fetchTables'] = fetchTablesAndViews(ContextValue.VIEW, 'VIEW');
+export const fetchViews: IBaseQueries['fetchTables'] = fetchTablesAndViews(ContextValue.VIEW);
 
 export const fetchDatabases: IBaseQueries['fetchDatabases'] = queryFactory`
 SELECT
@@ -118,7 +118,7 @@ SELECT
   '${ContextValue.DATABASE}' as "type",
   'database' as "detail"
 FROM information_schema.schemata
-WHERE schema_name NOT IN ('information_schema', 'cluster', 'memsql')
+WHERE schema_name NOT IN ('cluster', 'memsql')
 ORDER BY
   schema_name
 `;
@@ -136,7 +136,7 @@ SELECT
 FROM
   INFORMATION_SCHEMA.TABLES AS T
 WHERE
-  T.TABLE_SCHEMA NOT IN ('information_schema', 'performance_schema', 'sys', 'mysql')
+  T.TABLE_SCHEMA NOT IN ('cluster', 'memsql')
   ${p => p.search ? `AND (
     CONCAT(T.TABLE_SCHEMA, '.', T.TABLE_NAME) LIKE '%${p.search}%'
     OR CONCAT('"', T.TABLE_SCHEMA, '"."', T.TABLE_NAME, '"') LIKE '%${p.search}%'
@@ -173,7 +173,7 @@ FROM
   AND C.TABLE_SCHEMA = T.TABLE_SCHEMA
   AND (C.TABLE_CATALOG IS NULL OR C.TABLE_CATALOG = T.TABLE_CATALOG)
 WHERE
-  C.TABLE_SCHEMA NOT IN ('information_schema', 'memsql', 'cluster')
+  C.TABLE_SCHEMA NOT IN ('memsql', 'cluster')
   ${p => p.tables.filter(t => !!t.label).length
     ? `AND LOWER(C.TABLE_NAME) IN (${p.tables.filter(t => !!t.label).map(t => `'${t.label}'`.toLowerCase()).join(', ')})`
     : ''
