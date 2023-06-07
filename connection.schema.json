@@ -27,6 +27,42 @@
       "minimum": 1,
       "default": 3306,
       "type": "integer"
+    },
+    "useSsl": {
+      "title": "Use SSL",
+      "default": false,
+      "type": "boolean"
+    },
+    "ca": {
+      "title": "ca",
+      "description": "Trusted CA certificates",
+      "type": "string"
+    },
+    "cert": {
+      "title": "cert",
+      "description": "Cert chains in PEM format",
+      "type": "string"
+    },
+    "ciphers": {
+      "title": "ciphers",
+      "description": "Cipher suite specification",
+      "type": "string"
+    },
+    "key": {
+      "title": "key",
+      "description": "Private keys in PEM format",
+      "type": "string"
+    },
+    "passphrase": {
+      "title": "passphrase",
+      "description": "Private key passphrase",
+      "type": "string"
+    },
+    "rejectUnauthorized": {
+      "title": "rejectUnauthorized",
+      "description": "Reject clients with invalid certificates",
+      "type": "boolean",
+      "default": true
     }
   },
 
@@ -45,6 +81,48 @@
     },
     "password": {
       "$ref": "#/definitions/password"
+    },
+    "useSsl": {
+      "$ref": "#/definitions/useSsl"
+    }
+  },
+
+  "dependencies": {
+    "useSsl": {
+      "oneOf": [
+        {
+          "properties": {
+            "useSsl": {
+              "const": true
+            },
+            "ssl": {
+              "type": "object",
+              "title": "SSL Options (node.TLSSocket)",
+              "description": "Passed directly to node.TLSSocket. Check more here: https://nodejs.org/api/tls.html#tlscreatesecurecontextoptions",
+              "properties": {
+                "ca": {
+                  "$ref": "#/definitions/ca"
+                },
+                "cert": {
+                  "$ref": "#/definitions/cert"
+                },
+                "ciphers": {
+                  "$ref": "#/definitions/ciphers"
+                },
+                "key": {
+                  "$ref": "#/definitions/key"
+                },
+                "passphrase": {
+                  "$ref": "#/definitions/passphrase"
+                },
+                "rejectUnauthorized": {
+                  "$ref": "#/definitions/rejectUnauthorized"
+                }
+              }
+            }
+          }
+        }
+      ]
     }
   },
   "required": [

@@ -23,6 +23,7 @@ export default class SingleStoreDB<O = any> extends AbstractDriver<any, O> imple
       port: this.credentials.port,
       password: this.credentials.password,
       user: this.credentials.username,
+      ssl: this.credentials.ssl,
       multipleStatements: true,
       dateStrings: true,
       bigNumberStrings: true,

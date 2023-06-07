@@ -4,9 +4,17 @@
     "port",
     "database",
     "username",
-    "password"
+    "password",
+    "useSsl"
   ],
+
   "password": {
     "ui:widget": "password"
+  },
+
+  "ssl": {
+    "passphrase": {
+      "ui:widget": "password"
+    }
   }
 }
