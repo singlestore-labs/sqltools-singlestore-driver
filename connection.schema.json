@@ -35,32 +35,26 @@
     },
     "ca": {
       "title": "ca",
-      "description": "Trusted CA certificates",
       "type": "string"
     },
     "cert": {
       "title": "cert",
-      "description": "Cert chains in PEM format",
       "type": "string"
     },
     "ciphers": {
       "title": "ciphers",
-      "description": "Cipher suite specification",
       "type": "string"
     },
     "key": {
       "title": "key",
-      "description": "Private keys in PEM format",
       "type": "string"
     },
     "passphrase": {
       "title": "passphrase",
-      "description": "Private key passphrase",
       "type": "string"
     },
     "rejectUnauthorized": {
       "title": "rejectUnauthorized",
-      "description": "Reject clients with invalid certificates",
       "type": "boolean",
       "default": true
     }
@@ -106,14 +100,14 @@
                 "cert": {
                   "$ref": "#/definitions/cert"
                 },
-                "ciphers": {
-                  "$ref": "#/definitions/ciphers"
-                },
                 "key": {
                   "$ref": "#/definitions/key"
                 },
                 "passphrase": {
                   "$ref": "#/definitions/passphrase"
+                },
+                "ciphers": {
+                  "$ref": "#/definitions/ciphers"
                 },
                 "rejectUnauthorized": {
                   "$ref": "#/definitions/rejectUnauthorized"

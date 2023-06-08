@@ -6,11 +6,20 @@ import { IConnectionDriver, NSDatabase, Arg0, MConnectionExplorer, ContextValue,
 import keywordsCompletion from './keywords';
 import { v4 as generateId } from 'uuid';
 import parse from './parse';
+import fs from 'fs'
 
 const toBool = (v: any) => v && (v.toString() === '1' || v.toString().toLowerCase() === 'true' || v.toString().toLowerCase() === 'yes');
 
 export default class SingleStoreDB<O = any> extends AbstractDriver<any, O> implements IConnectionDriver {
   queries = Queries;
+
+  private readFile(path) {
+    if (path == null) {
+      return null
+    } else {
+      return fs.readFileSync(path)
+    }
+  }
 
   public open() {
     if (this.connection) {
@@ -23,7 +32,14 @@ export default class SingleStoreDB<O = any> extends AbstractDriver<any, O> imple
       port: this.credentials.port,
       password: this.credentials.password,
       user: this.credentials.username,
-      ssl: this.credentials.ssl,
+      ssl: {
+        ca: this.readFile(this.credentials.ssl.ca),
+        cert: this.readFile(this.credentials.ssl.cert),
+        key: this.readFile(this.credentials.ssl.key),
+        ciphers: this.credentials.ssl.ciphers,
+        passphrase: this.credentials.ssl.passphrase,
+        rejectUnauthorized: this.credentials.ssl.rejectUnauthorized
+      },
       multipleStatements: true,
       dateStrings: true,
       bigNumberStrings: true,
