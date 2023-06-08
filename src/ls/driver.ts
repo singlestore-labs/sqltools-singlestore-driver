@@ -14,7 +14,7 @@ export default class SingleStoreDB<O = any> extends AbstractDriver<any, O> imple
   queries = Queries;
 
   private readFile(path) {
-    if (path == null) {
+    if (path == null || path == '') {
       return null
     } else {
       return fs.readFileSync(path)
@@ -26,20 +26,25 @@ export default class SingleStoreDB<O = any> extends AbstractDriver<any, O> imple
       return this.connection;
     }
 
-    const pool = createPool({
-      database: this.credentials.database,
-      host: this.credentials.server,
-      port: this.credentials.port,
-      password: this.credentials.password,
-      user: this.credentials.username,
-      ssl: {
+    var ssl = null
+    if (this.credentials.useSsl && this.credentials.ssl) {
+      ssl = {
         ca: this.readFile(this.credentials.ssl.ca),
         cert: this.readFile(this.credentials.ssl.cert),
         key: this.readFile(this.credentials.ssl.key),
         ciphers: this.credentials.ssl.ciphers,
         passphrase: this.credentials.ssl.passphrase,
         rejectUnauthorized: this.credentials.ssl.rejectUnauthorized
-      },
+      }
+    }
+
+    const pool = createPool({
+      database: this.credentials.database,
+      host: this.credentials.server,
+      port: this.credentials.port,
+      password: this.credentials.password,
+      user: this.credentials.username,
+      ssl: ssl,
       multipleStatements: true,
       dateStrings: true,
       bigNumberStrings: true,
