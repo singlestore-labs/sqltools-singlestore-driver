@@ -1,12 +1,12 @@
 import AbstractDriver from '@sqltools/base-driver';
 import * as Queries from './queries';
-import MySQLLib from 'mysql';
 import { countBy } from 'lodash';
 import { IConnectionDriver, NSDatabase, Arg0, MConnectionExplorer, ContextValue, IQueryOptions } from '@sqltools/types';
 import keywordsCompletion from './keywords';
 import { v4 as generateId } from 'uuid';
 import parse from './parse';
 import fs from 'fs'
+import  { Pool, createPool, FieldPacket } from 'mysql2';
 
 const toBool = (v: any) => v && (v.toString() === '1' || v.toString().toLowerCase() === 'true' || v.toString().toLowerCase() === 'yes');
 
@@ -26,7 +26,7 @@ export default class SingleStoreDB<O = any> extends AbstractDriver<any, O> imple
       return this.connection;
     }
 
-    const pool = MySQLLib.createPool(this.credentials.connectString || {
+    const pool = createPool({
       database: this.credentials.database,
       host: this.credentials.server,
       port: this.credentials.port,
@@ -44,12 +44,15 @@ export default class SingleStoreDB<O = any> extends AbstractDriver<any, O> imple
       dateStrings: true,
       bigNumberStrings: true,
       supportBigNumbers: true,
-    });
+      connectAttributes: {
+        _connector_name: 'SingleStore SQLTOOLS driver for VSCode',
+        _connector_version: '0.1.2'},
+    } as any);
 
-    return new Promise<MySQLLib.Pool>((resolve, reject) => {
+    return new Promise<Pool>((resolve, reject) => {
       pool.getConnection((err, conn) => {
         if (err) return reject(err);
-        conn.ping(error => {
+        conn.connect(error => {
           if (error) return reject(error);
           this.connection = Promise.resolve(pool);
           conn.release();
@@ -148,12 +151,12 @@ export default class SingleStoreDB<O = any> extends AbstractDriver<any, O> imple
     return [records];
   }
 
-  private getColumnNames(fields: MySQLLib.FieldInfo[] = []): string[] {
+  private getColumnNames(fields: FieldPacket[]= []): string[] {
     const count = countBy(fields, ({ name }) => name);
     return fields.map(({ table, name }) => count[name] > 1 ? `${table}.${name}` : name);
   }
 
-  private mapRows(rows: any[] = [], fields: MySQLLib.FieldInfo[] = []): any[] {
+  private mapRows(rows: any[] = [], fields: FieldPacket[] = []): any[] {
     const names = this.getColumnNames(fields);
     return rows.map((row) => fields.reduce((r, { table, name }, i) => ({ ...r, [names[i]]: this.castResultsIfNeeded(row[table][name]) }), {}));
   }
