@@ -27,6 +27,36 @@
       "minimum": 1,
       "default": 3306,
       "type": "integer"
+    },
+    "useSsl": {
+      "title": "Use SSL",
+      "default": false,
+      "type": "boolean"
+    },
+    "ca": {
+      "title": "ca",
+      "type": "string"
+    },
+    "cert": {
+      "title": "cert",
+      "type": "string"
+    },
+    "ciphers": {
+      "title": "ciphers",
+      "type": "string"
+    },
+    "key": {
+      "title": "key",
+      "type": "string"
+    },
+    "passphrase": {
+      "title": "passphrase",
+      "type": "string"
+    },
+    "rejectUnauthorized": {
+      "title": "rejectUnauthorized",
+      "type": "boolean",
+      "default": true
     }
   },
 
@@ -45,6 +75,48 @@
     },
     "password": {
       "$ref": "#/definitions/password"
+    },
+    "useSsl": {
+      "$ref": "#/definitions/useSsl"
+    }
+  },
+
+  "dependencies": {
+    "useSsl": {
+      "oneOf": [
+        {
+          "properties": {
+            "useSsl": {
+              "const": true
+            },
+            "ssl": {
+              "type": "object",
+              "title": "SSL Options (node.TLSSocket)",
+              "description": "Passed directly to node.TLSSocket. Check more here: https://nodejs.org/api/tls.html#tlscreatesecurecontextoptions",
+              "properties": {
+                "ca": {
+                  "$ref": "#/definitions/ca"
+                },
+                "cert": {
+                  "$ref": "#/definitions/cert"
+                },
+                "key": {
+                  "$ref": "#/definitions/key"
+                },
+                "passphrase": {
+                  "$ref": "#/definitions/passphrase"
+                },
+                "ciphers": {
+                  "$ref": "#/definitions/ciphers"
+                },
+                "rejectUnauthorized": {
+                  "$ref": "#/definitions/rejectUnauthorized"
+                }
+              }
+            }
+          }
+        }
+      ]
     }
   },
   "required": [

@@ -5,6 +5,7 @@ import { IConnectionDriver, NSDatabase, Arg0, MConnectionExplorer, ContextValue,
 import keywordsCompletion from './keywords';
 import { v4 as generateId } from 'uuid';
 import parse from './parse';
+import fs from 'fs'
 import  { Pool, createPool, FieldPacket } from 'mysql2';
 
 const toBool = (v: any) => v && (v.toString() === '1' || v.toString().toLowerCase() === 'true' || v.toString().toLowerCase() === 'yes');
@@ -12,9 +13,29 @@ const toBool = (v: any) => v && (v.toString() === '1' || v.toString().toLowerCas
 export default class SingleStoreDB<O = any> extends AbstractDriver<any, O> implements IConnectionDriver {
   queries = Queries;
 
+  private readFile(path) {
+    if (path == null || path == '') {
+      return null
+    } else {
+      return fs.readFileSync(path)
+    }
+  }
+
   public open() {
     if (this.connection) {
       return this.connection;
+    }
+
+    var ssl = null
+    if (this.credentials.useSsl && this.credentials.ssl) {
+      ssl = {
+        ca: this.readFile(this.credentials.ssl.ca),
+        cert: this.readFile(this.credentials.ssl.cert),
+        key: this.readFile(this.credentials.ssl.key),
+        ciphers: this.credentials.ssl.ciphers,
+        passphrase: this.credentials.ssl.passphrase,
+        rejectUnauthorized: this.credentials.ssl.rejectUnauthorized
+      }
     }
 
     const pool = createPool({
@@ -23,13 +44,14 @@ export default class SingleStoreDB<O = any> extends AbstractDriver<any, O> imple
       port: this.credentials.port,
       password: this.credentials.password,
       user: this.credentials.username,
+      ssl: ssl,
       multipleStatements: true,
       dateStrings: true,
       bigNumberStrings: true,
       supportBigNumbers: true,
       connectAttributes: {
         _connector_name: 'SingleStore SQLTOOLS driver for VSCode',
-        _connector_version: '0.1.2'},
+        _connector_version: '0.1.3'},
     } as any);
 
     return new Promise<Pool>((resolve, reject) => {
