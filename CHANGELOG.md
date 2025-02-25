@@ -1,5 +1,8 @@
 # Change Log
 
+## 0.1.4
+ - Updated logos
+
 ## 0.1.3
  - Added SSL parameters
  - Switched to mysql2 library instead of mysql

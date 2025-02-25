@@ -51,7 +51,7 @@ export default class SingleStoreDB<O = any> extends AbstractDriver<any, O> imple
       supportBigNumbers: true,
       connectAttributes: {
         _connector_name: 'SingleStore SQLTOOLS driver for VSCode',
-        _connector_version: '0.1.3'},
+        _connector_version: '0.1.4'},
     } as any);
 
     return new Promise<Pool>((resolve, reject) => {
