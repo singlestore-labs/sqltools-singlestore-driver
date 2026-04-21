@@ -6,7 +6,7 @@ import keywordsCompletion from './keywords';
 import { v4 as generateId } from 'uuid';
 import parse from './parse';
 import fs from 'fs'
-import  { Pool, createPool, FieldPacket } from 'mysql2';
+import  { Pool, createPool, FieldPacket } from 'singlestore-nodejs';
 
 const toBool = (v: any) => v && (v.toString() === '1' || v.toString().toLowerCase() === 'true' || v.toString().toLowerCase() === 'yes');
 
