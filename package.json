@@ -96,16 +96,17 @@
     "@sqltools/base-driver": "^0.1.11",
     "@sqltools/types": "^0.1.7",
     "lodash": "^4.17.21",
-    "mysql2": "^3.3.3",
+    "singlestore-nodejs": "^1.0.1",
     "uuid": "^9.0.0"
   },
   "devDependencies": {
     "@types/jest": "^29.4.0",
-    "@types/node": "^18.4.0",
+    "@types/node": "^22.0.0",
     "@types/vscode": "^1.42.0",
-    "esbuild": "^0.25.0",
+    "esbuild": "^0.28.0",
     "jest": "^29.4.3",
+    "rimraf": "^6.0.1",
     "ts-jest": "^29.0.5",
-    "typescript": "^4.9.5"
+    "typescript": "^5.8.0"
   }
 }
