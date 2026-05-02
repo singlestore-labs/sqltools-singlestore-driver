@@ -97,7 +97,7 @@
     "@sqltools/types": "^0.1.7",
     "lodash": "^4.18.1",
     "singlestore-nodejs": "^1.0.1",
-    "uuid": "^9.0.0"
+    "uuid": "^14.0.0"
   },
   "devDependencies": {
     "@types/jest": "^29.4.0",
