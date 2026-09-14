@@ -1,0 +1,11 @@
+# .github/workflows/public-readiness.yml
+on:
+  pull_request:
+    paths: ['.github/public-release-request.yml']
+permissions:            # add this block
+  contents: read        # add this block
+  pull-requests: write  # add this block
+jobs:
+  readiness:
+    uses: singlestore/securitytesting/.github/workflows/public-readiness.yml@main
+    secrets: inherit
