@@ -1,7 +1,11 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-violet.svg)](https://opensource.org/licenses/MIT)
 
 # SingleStore Driver for SQLTools
-![logo](icons/singlestore_logo_horizontal_color_on-white_rgb.png)
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="icons/logo_primary_singlestore_white.png">
+  <source media="(prefers-color-scheme: light)" srcset="icons/logo_primary_singlestore_black.png">
+  <img alt="SingleStore logo" src="icons/logo_primary_singlestore_black.png">
+</picture>
 
 A Visual Studio Code extension which extends the [SQLTools extension](https://marketplace.visualstudio.com/items?itemName=mtxr.sqltools) to work with SingleStore.
 
