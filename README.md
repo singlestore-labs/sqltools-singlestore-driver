@@ -64,3 +64,7 @@ If you have any questions, want to report a bug, or have a feature request pleas
 2. Run `npm install` to install all dependencies.
 3. Run `npm run watch`.
 4. Open the `extension.ts` file, and press F5. This opens a new Visual Studio Code window with a development version of the driver extension loaded.
+
+## Disclaimer
+
+Attention: The code in this repository is intended for experimental use only and is not fully tested, documented, or supported by SingleStore. Visit the SingleStore Forums to ask questions about this repository.
